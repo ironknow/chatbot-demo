@@ -1,0 +1,29 @@
+{
+  "name": "chatbot-demo",
+  "version": "1.0.0",
+  "description": "A full-stack chatbot demo with React frontend and Node.js API",
+  "private": true,
+  "packageManager": "pnpm@10.18.2",
+  "scripts": {
+    "dev:web": "pnpm --filter web start",
+    "dev:api": "pnpm --filter api start",
+    "dev": "pnpm --parallel dev:web dev:api",
+    "build:web": "pnpm --filter web build",
+    "build:api": "pnpm --filter api build",
+    "build": "pnpm build:web && pnpm build:api",
+    "install:all": "pnpm install",
+    "clean": "pnpm --recursive exec rm -rf node_modules && rm -rf node_modules"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "keywords": [
+    "chatbot",
+    "react",
+    "nodejs",
+    "express",
+    "fullstack"
+  ],
+  "author": "",
+  "license": "ISC"
+}
