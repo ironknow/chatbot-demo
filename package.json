@@ -5,14 +5,26 @@
   "private": true,
   "packageManager": "pnpm@10.18.2",
   "scripts": {
-    "dev:web": "pnpm --filter web start",
-    "dev:api": "pnpm --filter api start",
     "dev": "pnpm --parallel dev:web dev:api",
+    "dev:web": "pnpm --filter web start",
+    "dev:api": "pnpm --filter api dev",
+    "build": "pnpm build:web",
     "build:web": "pnpm --filter web build",
-    "build:api": "pnpm --filter api build",
-    "build": "pnpm build:web && pnpm build:api",
+    "start": "pnpm start:api",
+    "start:api": "pnpm --filter api start",
+    "start:web": "pnpm --filter web start",
+    "serve:web": "pnpm --filter web serve",
+    "test": "pnpm --recursive test",
+    "test:web": "pnpm --filter web test",
+    "test:api": "pnpm --filter api test",
+    "lint": "pnpm --recursive lint",
+    "lint:web": "pnpm --filter web lint",
+    "lint:api": "pnpm --filter api lint",
+    "clean": "pnpm --recursive exec rm -rf node_modules && rm -rf node_modules",
+    "clean:build": "pnpm --recursive exec rm -rf build dist",
     "install:all": "pnpm install",
-    "clean": "pnpm --recursive exec rm -rf node_modules && rm -rf node_modules"
+    "setup": "pnpm install && pnpm --filter api exec cp .env.example .env",
+    "health": "curl -s http://localhost:5000/api/health | jq . || echo 'API not running'"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"
