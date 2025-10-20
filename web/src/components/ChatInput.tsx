@@ -1,4 +1,5 @@
 import React from 'react';
+import { HStack, Input, Button } from '@chakra-ui/react';
 import { ChatInputProps } from '@/types';
 
 const ChatInput: React.FC<ChatInputProps> = ({
@@ -16,22 +17,34 @@ const ChatInput: React.FC<ChatInputProps> = ({
   };
 
   return (
-    <div className="input-area">
-      <input
+    <HStack spacing={3}>
+      <Input
         value={input}
         onChange={(e) => setInput(e.target.value)}
         placeholder="Type your message..."
         onKeyDown={handleKeyDown}
         disabled={disabled}
+        size="lg"
+        borderRadius="full"
+        bg="gray.50"
+        _focus={{
+          bg: 'white',
+          boxShadow: '0 0 0 1px #3182ce',
+        }}
       />
-      <button
+      <Button
         onClick={onSend}
         disabled={!input.trim() || disabled}
-        className={isTyping || isLoading ? 'disabled' : ''}
+        colorScheme="blue"
+        size="lg"
+        borderRadius="full"
+        px={6}
+        isLoading={isLoading}
+        loadingText="Sending"
       >
-        {isTyping ? '...' : isLoading ? '⏳' : 'Send'}
-      </button>
-    </div>
+        {isTyping ? '...' : 'Send'}
+      </Button>
+    </HStack>
   );
 };
 
