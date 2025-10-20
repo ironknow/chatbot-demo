@@ -5,6 +5,9 @@ A full-stack chatbot application powered by Groq's fast LLM models (Llama 3.1), 
 ## ✨ Features
 
 - **Real AI Integration**: Powered by Groq's Llama 3.1 models (FREE!)
+- **TypeScript**: Full type safety and better development experience
+- **CRACO**: Customizable React app configuration
+- **Modular Architecture**: Organized components, hooks, and services
 - **Conversation Memory**: Remembers context across messages
 - **Modern UI**: Beautiful, responsive chat interface
 - **Typing Indicators**: Realistic chat experience
@@ -90,6 +93,16 @@ pnpm health     # Check API health
 
 ## 🛠 Configuration
 
+### TypeScript Features
+
+The frontend is built with TypeScript and includes:
+
+- **Type Safety**: Full type checking for all components and functions
+- **Path Mapping**: Clean imports with `@/` aliases
+- **Strict Mode**: Enhanced type checking for better code quality
+- **Source Maps**: Better debugging experience
+- **Modular Structure**: Organized components, hooks, services, and types
+
 ### Environment Variables
 
 | Variable | Description | Default |
@@ -119,10 +132,16 @@ chatbot-demo/
 │   ├── server.js          # Entry point
 │   ├── package.json       # Backend dependencies
 │   └── .env.example       # Environment variables template
-├── web/                   # React frontend
+├── web/                   # React frontend (TypeScript + CRACO)
 │   ├── src/
-│   │   ├── App.js         # Main chat component
+│   │   ├── components/    # React components
+│   │   ├── hooks/         # Custom hooks
+│   │   ├── services/      # API services
+│   │   ├── types/         # TypeScript types
+│   │   ├── App.tsx        # Main chat component
 │   │   └── App.css        # Styling
+│   ├── tsconfig.json      # TypeScript config
+│   ├── craco.config.js    # CRACO config
 │   └── package.json       # Frontend dependencies
 ├── package.json           # Workspace configuration
 └── pnpm-workspace.yaml    # pnpm workspace config
