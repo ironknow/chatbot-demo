@@ -1,4 +1,4 @@
-import React from "react";
+import React, { memo, useMemo } from "react";
 import { Box, Text, HStack, IconButton, Tooltip } from "@chakra-ui/react";
 import {
   MdThumbUp,
@@ -7,17 +7,60 @@ import {
   MdRefresh,
 } from "react-icons/md";
 import { ChatMessageProps } from "@/types";
+import { useTheme } from "@/contexts";
+import {
+  getCommonStyles,
+  getAvatarConfig,
+  MESSAGE_ACTIONS,
+} from "@/theme/styles";
 
-const ChatMessage: React.FC<ChatMessageProps> = ({ message, index }) => {
+const ChatMessage: React.FC<ChatMessageProps> = memo(({ message, index }) => {
   const isUser = message.sender === "user";
+  const { theme } = useTheme();
+
+  const styles = useMemo(() => getCommonStyles(theme), [theme]);
+  const avatarConfig = useMemo(
+    () => getAvatarConfig(isUser ? "user" : "bot"),
+    [isUser],
+  );
+
+  const messageActions = useMemo(() => {
+    if (isUser) return null;
+
+    const icons = {
+      MdThumbUp,
+      MdThumbDown,
+      MdContentCopy,
+      MdRefresh,
+    };
+
+    return (
+      <HStack spacing={1} mt={3}>
+        {MESSAGE_ACTIONS.map((action) => {
+          const IconComponent = icons[action.icon as keyof typeof icons];
+          return (
+            <Tooltip key={action.label} label={action.label}>
+              <IconButton
+                aria-label={action.ariaLabel}
+                icon={<IconComponent />}
+                size="xs"
+                variant="ghost"
+                colorScheme="gray"
+              />
+            </Tooltip>
+          );
+        })}
+      </HStack>
+    );
+  }, [isUser]);
 
   return (
     <Box
       py={6}
       px={4}
-      bg={isUser ? "white" : "gray.50"}
+      bg={isUser ? styles.message.user.bg : styles.message.bot.bg}
       borderBottom="1px"
-      borderColor="gray.100"
+      borderColor={styles.border.borderColor}
     >
       <HStack align="flex-start" spacing={4} maxW="4xl" mx="auto">
         {/* Avatar */}
@@ -25,7 +68,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, index }) => {
           w={8}
           h={8}
           borderRadius="full"
-          bg={isUser ? "blue.500" : "green.500"}
+          bg={avatarConfig.bg}
           display="flex"
           alignItems="center"
           justifyContent="center"
@@ -33,7 +76,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, index }) => {
           mt={1}
         >
           <Text fontSize="sm" color="white" fontWeight="bold">
-            {isUser ? "U" : "AI"}
+            {avatarConfig.text}
           </Text>
         </Box>
 
@@ -42,7 +85,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, index }) => {
           <Text
             fontSize="md"
             lineHeight="1.6"
-            color="gray.800"
+            color={styles.container.color}
             whiteSpace="pre-wrap"
             wordBreak="break-word"
           >
@@ -50,50 +93,11 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, index }) => {
           </Text>
 
           {/* Message Actions */}
-          {!isUser && (
-            <HStack spacing={1} mt={3}>
-              <Tooltip label="Good response">
-                <IconButton
-                  aria-label="Good response"
-                  icon={<MdThumbUp />}
-                  size="xs"
-                  variant="ghost"
-                  colorScheme="gray"
-                />
-              </Tooltip>
-              <Tooltip label="Bad response">
-                <IconButton
-                  aria-label="Bad response"
-                  icon={<MdThumbDown />}
-                  size="xs"
-                  variant="ghost"
-                  colorScheme="gray"
-                />
-              </Tooltip>
-              <Tooltip label="Copy">
-                <IconButton
-                  aria-label="Copy"
-                  icon={<MdContentCopy />}
-                  size="xs"
-                  variant="ghost"
-                  colorScheme="gray"
-                />
-              </Tooltip>
-              <Tooltip label="Regenerate">
-                <IconButton
-                  aria-label="Regenerate"
-                  icon={<MdRefresh />}
-                  size="xs"
-                  variant="ghost"
-                  colorScheme="gray"
-                />
-              </Tooltip>
-            </HStack>
-          )}
+          {messageActions}
         </Box>
       </HStack>
     </Box>
   );
-};
+});
 
 export default ChatMessage;

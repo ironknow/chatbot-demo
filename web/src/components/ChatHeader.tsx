@@ -1,80 +1,97 @@
-import React from "react";
-import { Box, HStack, Text, IconButton, Tooltip } from "@chakra-ui/react";
+import React, { memo, useMemo } from "react";
+import { Box, HStack, Text } from "@chakra-ui/react";
 import { MdRefresh, MdDelete, MdMoreVert, MdMenu } from "react-icons/md";
 import { ChatHeaderProps } from "@/types";
+import { useTheme } from "@/contexts";
+import { ThemeToggle, IconButton } from "@/components";
+import { getCommonStyles, getStatusColors } from "@/theme/styles";
 
-const ChatHeader: React.FC<ChatHeaderProps> = ({
-  apiStatus,
-  onClear,
-  onRetry,
-  hasError,
-  sidebarOpen,
-  onToggleSidebar,
-}) => {
-  return (
-    <Box bg="white" borderBottom="1px" borderColor="gray.200" px={4} py={3}>
-      <HStack justify="space-between" align="center" maxW="4xl" mx="auto">
-        <HStack spacing={3}>
-          <IconButton
-            aria-label="Toggle sidebar"
-            icon={<MdMenu />}
-            size="sm"
-            variant="ghost"
-            colorScheme="gray"
-            onClick={onToggleSidebar}
-          />
-          <Text fontSize="lg" fontWeight="semibold" color="gray.800">
-            Chatty
-          </Text>
-          {apiStatus && (
-            <Box
-              px={2}
-              py={1}
-              borderRadius="md"
-              bg={apiStatus.status === "healthy" ? "green.100" : "red.100"}
-              color={apiStatus.status === "healthy" ? "green.700" : "red.700"}
-              fontSize="xs"
-              fontWeight="medium"
+const ChatHeader: React.FC<ChatHeaderProps> = memo(
+  ({ apiStatus, onClear, onRetry, hasError, sidebarOpen, onToggleSidebar }) => {
+    const { theme } = useTheme();
+
+    const styles = useMemo(() => getCommonStyles(theme), [theme]);
+
+    const statusColors = useMemo(() => {
+      if (!apiStatus) return null;
+      return getStatusColors(
+        theme,
+        apiStatus.status === "healthy" ? "online" : "offline",
+      );
+    }, [apiStatus, theme]);
+
+    return (
+      <Box
+        bg={styles.container.bg}
+        borderBottom="1px"
+        borderColor={styles.border.borderColor}
+        px={4}
+        py={3}
+      >
+        <HStack justify="space-between" align="center" maxW="4xl" mx="auto">
+          <HStack spacing={3}>
+            <IconButton
+              aria-label="Toggle sidebar"
+              icon={<MdMenu />}
+              size="sm"
+              variant="ghost"
+              onClick={onToggleSidebar}
+              tooltip="Toggle sidebar"
+            />
+            <Text
+              fontSize="lg"
+              fontWeight="semibold"
+              color={styles.container.color}
             >
-              {apiStatus.status === "healthy" ? "Online" : "Offline"}
-            </Box>
-          )}
-        </HStack>
+              Chatty
+            </Text>
+            {apiStatus && statusColors && (
+              <Box
+                px={2}
+                py={1}
+                borderRadius="md"
+                bg={statusColors.bg}
+                color={statusColors.text}
+                fontSize="xs"
+                fontWeight="medium"
+              >
+                {apiStatus.status === "healthy" ? "Online" : "Offline"}
+              </Box>
+            )}
+          </HStack>
 
-        <HStack spacing={1}>
-          {hasError && onRetry && (
-            <Tooltip label="Regenerate response">
+          <HStack spacing={1}>
+            {hasError && onRetry && (
               <IconButton
                 aria-label="Regenerate response"
                 icon={<MdRefresh />}
                 size="sm"
                 variant="ghost"
-                colorScheme="gray"
                 onClick={onRetry}
+                tooltip="Regenerate response"
               />
-            </Tooltip>
-          )}
-          <Tooltip label="New chat">
+            )}
             <IconButton
               aria-label="New chat"
               icon={<MdDelete />}
               size="sm"
               variant="ghost"
-              colorScheme="gray"
               onClick={onClear}
+              tooltip="New chat"
             />
-          </Tooltip>
-          <IconButton
-            aria-label="More options"
-            icon={<MdMoreVert />}
-            size="sm"
-            variant="ghost"
-            colorScheme="gray"
-          />
+            <ThemeToggle />
+            <IconButton
+              aria-label="More options"
+              icon={<MdMoreVert />}
+              size="sm"
+              variant="ghost"
+              tooltip="More options"
+            />
+          </HStack>
         </HStack>
-      </HStack>
-    </Box>
-  );
-};
+      </Box>
+    );
+  },
+);
 
 export default ChatHeader;

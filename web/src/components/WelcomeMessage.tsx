@@ -1,37 +1,30 @@
-import React from "react";
-import { Box, Text, VStack, SimpleGrid, Button } from "@chakra-ui/react";
+import React, { memo, useMemo } from "react";
+import { Box, Text, VStack, SimpleGrid } from "@chakra-ui/react";
 import { MdLightbulb, MdCode, MdLanguage, MdSchool } from "react-icons/md";
+import { useTheme } from "@/contexts";
+import { Button } from "@/components";
+import { getTextColor, WELCOME_SUGGESTIONS } from "@/theme/styles";
 
-const WelcomeMessage: React.FC = () => {
-  const suggestions = [
-    { icon: MdLightbulb, text: "Explain quantum computing", color: "blue" },
-    { icon: MdCode, text: "Write a Python function", color: "green" },
-    { icon: MdLanguage, text: "Translate 'Hello' to Spanish", color: "purple" },
-    { icon: MdSchool, text: "Explain photosynthesis", color: "orange" },
-  ];
+const WelcomeMessage: React.FC = memo(() => {
+  const { theme } = useTheme();
 
-  return (
-    <Box textAlign="center" py={12} px={4}>
-      <VStack spacing={8} maxW="4xl" mx="auto">
-        {/* Main Title */}
-        <VStack spacing={4}>
-          <Text fontSize="4xl" fontWeight="bold" color="gray.800">
-            How can I help you today?
-          </Text>
-          <Text fontSize="lg" color="gray.600" maxW="2xl">
-            I'm Chatty, your AI assistant. I can help you with questions,
-            creative tasks, analysis, coding, and much more.
-          </Text>
-        </VStack>
+  const iconComponents = useMemo(
+    () => ({
+      MdLightbulb,
+      MdCode,
+      MdLanguage,
+      MdSchool,
+    }),
+    [],
+  );
 
-        {/* Suggestion Cards */}
-        <SimpleGrid
-          columns={{ base: 1, md: 2 }}
-          spacing={4}
-          w="full"
-          maxW="4xl"
-        >
-          {suggestions.map((suggestion, index) => (
+  const suggestionCards = useMemo(
+    () => (
+      <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4} w="full" maxW="4xl">
+        {WELCOME_SUGGESTIONS.map((suggestion, index) => {
+          const IconComponent =
+            iconComponents[suggestion.icon as keyof typeof iconComponents];
+          return (
             <Button
               key={index}
               variant="outline"
@@ -40,28 +33,45 @@ const WelcomeMessage: React.FC = () => {
               p={6}
               justifyContent="flex-start"
               textAlign="left"
-              bg="white"
-              borderColor="gray.200"
-              _hover={{
-                borderColor: `${suggestion.color}.300`,
-                bg: `${suggestion.color}.50`,
-              }}
-              leftIcon={<suggestion.icon color={`${suggestion.color}.500`} />}
+              leftIcon={<IconComponent color={`${suggestion.color}.500`} />}
             >
-              <Text fontSize="md" color="gray.700">
-                {suggestion.text}
-              </Text>
+              <Text fontSize="md">{suggestion.text}</Text>
             </Button>
-          ))}
-        </SimpleGrid>
+          );
+        })}
+      </SimpleGrid>
+    ),
+    [iconComponents],
+  );
+
+  return (
+    <Box textAlign="center" py={12} px={4}>
+      <VStack spacing={8} maxW="4xl" mx="auto">
+        {/* Main Title */}
+        <VStack spacing={4}>
+          <Text fontSize="4xl" fontWeight="bold" color={getTextColor(theme)}>
+            How can I help you today?
+          </Text>
+          <Text
+            fontSize="lg"
+            color={getTextColor(theme, "secondary")}
+            maxW="2xl"
+          >
+            I'm Chatty, your AI assistant. I can help you with questions,
+            creative tasks, analysis, coding, and much more.
+          </Text>
+        </VStack>
+
+        {/* Suggestion Cards */}
+        {suggestionCards}
 
         {/* Footer Text */}
-        <Text fontSize="sm" color="gray.500" mt={8}>
+        <Text fontSize="sm" color={getTextColor(theme, "tertiary")} mt={8}>
           Chatty can make mistakes. Consider checking important information.
         </Text>
       </VStack>
     </Box>
   );
-};
+});
 
 export default WelcomeMessage;

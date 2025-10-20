@@ -1,6 +1,7 @@
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useCallback, useMemo } from "react";
 import { Box, Flex } from "@chakra-ui/react";
 import { useChat } from "@/hooks/useChat";
+import { useTheme } from "@/contexts";
 import {
   ChatHeader,
   ChatMessage,
@@ -8,10 +9,13 @@ import {
   WelcomeMessage,
   TypingIndicator,
   Sidebar,
+  ErrorBoundary,
 } from "@/components";
+import { getCommonStyles, THEME_CONFIG } from "@/theme/styles";
 
 const App: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { theme } = useTheme();
 
   const {
     messages,
@@ -28,64 +32,99 @@ const App: React.FC = () => {
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const handleNewChat = () => {
+  const handleNewChat = useCallback(() => {
     clearConversation();
     setSidebarOpen(false); // Close sidebar on mobile after new chat
-  };
+  }, [clearConversation]);
+
+  const toggleSidebar = useCallback(() => {
+    setSidebarOpen((prev) => !prev);
+  }, []);
+
+  const styles = useMemo(() => getCommonStyles(theme), [theme]);
+
+  const mainContentStyles = useMemo(
+    () => ({
+      flex: "1",
+      direction: "column" as const,
+      ml: { base: 0, md: sidebarOpen ? THEME_CONFIG.SIDEBAR_WIDTH : 0 },
+      transition: THEME_CONFIG.TRANSITION_DURATION,
+    }),
+    [sidebarOpen],
+  );
+
+  const messageList = useMemo(
+    () => (
+      <>
+        {messages.length === 0 && <WelcomeMessage />}
+        {messages.map((message, index) => (
+          <ChatMessage
+            key={`${message.timestamp}-${index}`}
+            message={message}
+            index={index}
+          />
+        ))}
+        {isTyping && <TypingIndicator />}
+        <div ref={messagesEndRef} />
+      </>
+    ),
+    [messages, isTyping],
+  );
 
   return (
-    <Flex height="100vh" bg="gray.50">
-      {/* Sidebar */}
-      <Sidebar
-        isOpen={sidebarOpen}
-        onToggle={() => setSidebarOpen(!sidebarOpen)}
-        onNewChat={handleNewChat}
-      />
-
-      {/* Main Content */}
-      <Flex
-        flex="1"
-        direction="column"
-        ml={{ base: 0, md: sidebarOpen ? "260px" : 0 }}
-        transition="margin-left 0.2s"
-      >
-        <ChatHeader
-          apiStatus={apiStatus}
-          onClear={clearConversation}
-          onRetry={error ? retryLastMessage : undefined}
-          hasError={!!error}
-          sidebarOpen={sidebarOpen}
-          onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
+    <ErrorBoundary>
+      <Flex height="100vh" bg={styles.container.bg}>
+        {/* Sidebar */}
+        <Sidebar
+          isOpen={sidebarOpen}
+          onToggle={toggleSidebar}
+          onNewChat={handleNewChat}
         />
 
-        <Box flex="1" overflowY="auto" bg="white" px={4} py={6}>
-          <Box maxW="4xl" mx="auto">
-            {messages.length === 0 && <WelcomeMessage />}
+        {/* Main Content */}
+        <Flex {...mainContentStyles}>
+          <ChatHeader
+            apiStatus={apiStatus}
+            onClear={clearConversation}
+            onRetry={error ? retryLastMessage : undefined}
+            hasError={!!error}
+            sidebarOpen={sidebarOpen}
+            onToggleSidebar={toggleSidebar}
+          />
 
-            {messages.map((message, index) => (
-              <ChatMessage key={index} message={message} index={index} />
-            ))}
-
-            {isTyping && <TypingIndicator />}
-
-            <div ref={messagesEndRef} />
+          <Box
+            flex="1"
+            overflowY="auto"
+            bg={styles.container.bg}
+            px={THEME_CONFIG.CONTENT_PADDING}
+            py={THEME_CONFIG.MESSAGE_PADDING}
+          >
+            <Box maxW={THEME_CONFIG.MAX_CONTENT_WIDTH} mx="auto">
+              {messageList}
+            </Box>
           </Box>
-        </Box>
 
-        <Box bg="white" borderTop="1px" borderColor="gray.200" px={4} py={4}>
-          <Box maxW="4xl" mx="auto">
-            <ChatInput
-              input={input}
-              setInput={setInput}
-              onSend={sendMessage}
-              disabled={isTyping}
-              isTyping={isTyping}
-              isLoading={isLoading}
-            />
+          <Box
+            bg={styles.container.bg}
+            borderTop="1px"
+            borderColor={styles.border.borderColor}
+            px={THEME_CONFIG.CONTENT_PADDING}
+            py={THEME_CONFIG.CONTENT_PADDING}
+          >
+            <Box maxW={THEME_CONFIG.MAX_CONTENT_WIDTH} mx="auto">
+              <ChatInput
+                input={input}
+                setInput={setInput}
+                onSend={sendMessage}
+                disabled={isTyping}
+                isTyping={isTyping}
+                isLoading={isLoading}
+              />
+            </Box>
           </Box>
-        </Box>
+        </Flex>
       </Flex>
-    </Flex>
+    </ErrorBoundary>
   );
 };
 

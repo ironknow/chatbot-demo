@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Message, UseChatReturn, ApiHealthResponse } from "@/types";
 import { chatService } from "@/services/chatService";
+import { THEME_CONFIG } from "@/theme/styles";
 
 export const useChat = (): UseChatReturn => {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -74,8 +75,10 @@ export const useChat = (): UseChatReturn => {
           setIsTyping(false);
           setIsLoading(false);
         },
-        1000 + Math.random() * 1000,
-      ); // 1-2 second delay
+        THEME_CONFIG.TYPING_DELAY_MIN +
+          Math.random() *
+            (THEME_CONFIG.TYPING_DELAY_MAX - THEME_CONFIG.TYPING_DELAY_MIN),
+      );
     } catch (err) {
       console.error("Chat error:", err);
       setTimeout(() => {
@@ -91,7 +94,7 @@ export const useChat = (): UseChatReturn => {
         setIsTyping(false);
         setIsLoading(false);
         setError(errorMsg);
-      }, 1000);
+      }, THEME_CONFIG.TYPING_DELAY_MIN);
     }
   }, [input, isTyping, isLoading, conversationId]);
 
