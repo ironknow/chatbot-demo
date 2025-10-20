@@ -1,15 +1,18 @@
-import React, { useRef } from 'react';
-import { Box, VStack } from '@chakra-ui/react';
-import { useChat } from '@/hooks/useChat';
-import { 
-  ChatHeader, 
-  ChatMessage, 
-  ChatInput, 
-  WelcomeMessage, 
-  TypingIndicator 
-} from '@/components';
+import React, { useRef, useState } from "react";
+import { Box, Flex } from "@chakra-ui/react";
+import { useChat } from "@/hooks/useChat";
+import {
+  ChatHeader,
+  ChatMessage,
+  ChatInput,
+  WelcomeMessage,
+  TypingIndicator,
+  Sidebar,
+} from "@/components";
 
 const App: React.FC = () => {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
   const {
     messages,
     input,
@@ -25,54 +28,64 @@ const App: React.FC = () => {
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  const handleNewChat = () => {
+    clearConversation();
+    setSidebarOpen(false); // Close sidebar on mobile after new chat
+  };
+
   return (
-    <Box
-      height="100vh"
-      display="flex"
-      flexDirection="column"
-      bg="gray.50"
-    >
-      <ChatHeader
-        apiStatus={apiStatus}
-        onClear={clearConversation}
-        onRetry={error ? retryLastMessage : undefined}
-        hasError={!!error}
+    <Flex height="100vh" bg="gray.50">
+      {/* Sidebar */}
+      <Sidebar
+        isOpen={sidebarOpen}
+        onToggle={() => setSidebarOpen(!sidebarOpen)}
+        onNewChat={handleNewChat}
       />
 
-      <Box
+      {/* Main Content */}
+      <Flex
         flex="1"
-        overflowY="auto"
-        p={4}
-        bg="white"
-        mx={4}
-        my={2}
-        borderRadius="lg"
-        boxShadow="sm"
+        direction="column"
+        ml={{ base: 0, md: sidebarOpen ? "260px" : 0 }}
+        transition="margin-left 0.2s"
       >
-        <VStack spacing={4} align="stretch">
-          {messages.length === 0 && <WelcomeMessage />}
-
-          {messages.map((message, index) => (
-            <ChatMessage key={index} message={message} index={index} />
-          ))}
-
-          {isTyping && <TypingIndicator />}
-
-          <div ref={messagesEndRef} />
-        </VStack>
-      </Box>
-
-      <Box p={4} bg="white" mx={4} mb={4} borderRadius="lg" boxShadow="sm">
-        <ChatInput
-          input={input}
-          setInput={setInput}
-          onSend={sendMessage}
-          disabled={isTyping}
-          isTyping={isTyping}
-          isLoading={isLoading}
+        <ChatHeader
+          apiStatus={apiStatus}
+          onClear={clearConversation}
+          onRetry={error ? retryLastMessage : undefined}
+          hasError={!!error}
+          sidebarOpen={sidebarOpen}
+          onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
         />
-      </Box>
-    </Box>
+
+        <Box flex="1" overflowY="auto" bg="white" px={4} py={6}>
+          <Box maxW="4xl" mx="auto">
+            {messages.length === 0 && <WelcomeMessage />}
+
+            {messages.map((message, index) => (
+              <ChatMessage key={index} message={message} index={index} />
+            ))}
+
+            {isTyping && <TypingIndicator />}
+
+            <div ref={messagesEndRef} />
+          </Box>
+        </Box>
+
+        <Box bg="white" borderTop="1px" borderColor="gray.200" px={4} py={4}>
+          <Box maxW="4xl" mx="auto">
+            <ChatInput
+              input={input}
+              setInput={setInput}
+              onSend={sendMessage}
+              disabled={isTyping}
+              isTyping={isTyping}
+              isLoading={isLoading}
+            />
+          </Box>
+        </Box>
+      </Flex>
+    </Flex>
   );
 };
 

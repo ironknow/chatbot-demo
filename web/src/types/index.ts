@@ -1,6 +1,6 @@
 // Message types
 export interface Message {
-  sender: 'user' | 'bot';
+  sender: "user" | "bot";
   text: string;
   timestamp: string;
 }
@@ -13,7 +13,7 @@ export interface ChatResponse {
 }
 
 export interface ApiHealthResponse {
-  status: 'healthy' | 'error';
+  status: "healthy" | "error";
   timestamp: string;
   groq?: {
     configured: boolean;
@@ -45,6 +45,8 @@ export interface ChatHeaderProps {
   onClear: () => void;
   onRetry?: () => void;
   hasError: boolean;
+  sidebarOpen: boolean;
+  onToggleSidebar: () => void;
 }
 
 // Hook types
@@ -64,7 +66,10 @@ export interface UseChatReturn {
 
 // Service types
 export interface ChatService {
-  sendMessage: (message: string, conversationId: string) => Promise<ChatResponse>;
+  sendMessage: (
+    message: string,
+    conversationId: string,
+  ) => Promise<ChatResponse>;
   getConversation: (conversationId: string) => Promise<{ messages: Message[] }>;
   clearConversation: (conversationId: string) => Promise<{ message: string }>;
   checkHealth: () => Promise<ApiHealthResponse>;

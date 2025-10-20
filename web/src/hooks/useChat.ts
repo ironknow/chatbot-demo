@@ -1,21 +1,21 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { Message, UseChatReturn, ApiHealthResponse } from '@/types';
-import { chatService } from '@/services/chatService';
+import { useState, useEffect, useRef, useCallback } from "react";
+import { Message, UseChatReturn, ApiHealthResponse } from "@/types";
+import { chatService } from "@/services/chatService";
 
 export const useChat = (): UseChatReturn => {
   const [messages, setMessages] = useState<Message[]>([]);
-  const [input, setInput] = useState<string>('');
+  const [input, setInput] = useState<string>("");
   const [isTyping, setIsTyping] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  const [conversationId] = useState<string>(() => 
-    `conv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+  const [conversationId] = useState<string>(
+    () => `conv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
   );
   const [apiStatus, setApiStatus] = useState<ApiHealthResponse | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = useCallback(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, []);
 
   useEffect(() => {
@@ -30,9 +30,9 @@ export const useChat = (): UseChatReturn => {
         setApiStatus(status);
       } catch (err) {
         setApiStatus({
-          status: 'error',
+          status: "error",
           timestamp: new Date().toISOString(),
-          message: 'API not reachable',
+          message: "API not reachable",
         });
       }
     };
@@ -44,38 +44,45 @@ export const useChat = (): UseChatReturn => {
     if (!input.trim() || isTyping || isLoading) return;
 
     const userMsg: Message = {
-      sender: 'user',
+      sender: "user",
       text: input.trim(),
       timestamp: new Date().toISOString(),
     };
 
     setMessages((prev) => [...prev, userMsg]);
-    setInput('');
+    setInput("");
     setIsTyping(true);
     setError(null);
     setIsLoading(true);
 
     try {
-      const response = await chatService.sendMessage(input.trim(), conversationId);
+      const response = await chatService.sendMessage(
+        input.trim(),
+        conversationId,
+      );
 
       // Simulate typing delay for more realistic feel
-      setTimeout(() => {
-        const botMsg: Message = {
-          sender: 'bot',
-          text: response.reply,
-          timestamp: response.timestamp || new Date().toISOString(),
-        };
+      setTimeout(
+        () => {
+          const botMsg: Message = {
+            sender: "bot",
+            text: response.reply,
+            timestamp: response.timestamp || new Date().toISOString(),
+          };
 
-        setMessages((prev) => [...prev, botMsg]);
-        setIsTyping(false);
-        setIsLoading(false);
-      }, 1000 + Math.random() * 1000); // 1-2 second delay
+          setMessages((prev) => [...prev, botMsg]);
+          setIsTyping(false);
+          setIsLoading(false);
+        },
+        1000 + Math.random() * 1000,
+      ); // 1-2 second delay
     } catch (err) {
-      console.error('Chat error:', err);
+      console.error("Chat error:", err);
       setTimeout(() => {
-        const errorMsg = '⚠️ Sorry, I\'m having trouble connecting. Please try again in a moment.';
+        const errorMsg =
+          "⚠️ Sorry, I'm having trouble connecting. Please try again in a moment.";
         const errorBotMsg: Message = {
-          sender: 'bot',
+          sender: "bot",
           text: errorMsg,
           timestamp: new Date().toISOString(),
         };
@@ -94,15 +101,15 @@ export const useChat = (): UseChatReturn => {
       setMessages([]);
       setError(null);
     } catch (err) {
-      console.error('Failed to clear conversation:', err);
-      setError('Failed to clear conversation. Please try again.');
+      console.error("Failed to clear conversation:", err);
+      setError("Failed to clear conversation. Please try again.");
     }
   }, [conversationId]);
 
   const retryLastMessage = useCallback(() => {
     if (messages.length > 0 && error) {
       const lastUserMessage = messages
-        .filter((msg) => msg.sender === 'user')
+        .filter((msg) => msg.sender === "user")
         .pop();
       if (lastUserMessage) {
         setInput(lastUserMessage.text);

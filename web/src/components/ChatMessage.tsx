@@ -1,64 +1,98 @@
-import React from 'react';
-import { Box, Text, VStack, HStack, Avatar } from '@chakra-ui/react';
-import { ChatMessageProps } from '@/types';
+import React from "react";
+import { Box, Text, HStack, IconButton, Tooltip } from "@chakra-ui/react";
+import {
+  MdThumbUp,
+  MdThumbDown,
+  MdContentCopy,
+  MdRefresh,
+} from "react-icons/md";
+import { ChatMessageProps } from "@/types";
 
 const ChatMessage: React.FC<ChatMessageProps> = ({ message, index }) => {
-  const formatTime = (timestamp: string): string => {
-    return new Date(timestamp).toLocaleTimeString([], {
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
-
-  const isUser = message.sender === 'user';
+  const isUser = message.sender === "user";
 
   return (
-    <HStack
-      spacing={3}
-      align="flex-start"
-      justify={isUser ? 'flex-end' : 'flex-start'}
-      maxW="80%"
-      alignSelf={isUser ? 'flex-end' : 'flex-start'}
+    <Box
+      py={6}
+      px={4}
+      bg={isUser ? "white" : "gray.50"}
+      borderBottom="1px"
+      borderColor="gray.100"
     >
-      {!isUser && (
-        <Avatar
-          size="sm"
-          name="Bot"
-          src="https://bit.ly/broken-link"
-          bg="blue.500"
-        />
-      )}
-      
-      <VStack
-        align={isUser ? 'flex-end' : 'flex-start'}
-        spacing={1}
-        maxW="100%"
-      >
+      <HStack align="flex-start" spacing={4} maxW="4xl" mx="auto">
+        {/* Avatar */}
         <Box
-          bg={isUser ? 'blue.500' : 'gray.100'}
-          color={isUser ? 'white' : 'gray.800'}
-          px={4}
-          py={2}
-          borderRadius="lg"
-          maxW="100%"
-          wordBreak="break-word"
+          w={8}
+          h={8}
+          borderRadius="full"
+          bg={isUser ? "blue.500" : "green.500"}
+          display="flex"
+          alignItems="center"
+          justifyContent="center"
+          flexShrink={0}
+          mt={1}
         >
-          <Text fontSize="md">{message.text}</Text>
+          <Text fontSize="sm" color="white" fontWeight="bold">
+            {isUser ? "U" : "AI"}
+          </Text>
         </Box>
-        
-        <Text fontSize="xs" color="gray.500" px={2}>
-          {formatTime(message.timestamp)}
-        </Text>
-      </VStack>
-      
-      {isUser && (
-        <Avatar
-          size="sm"
-          name="User"
-          bg="green.500"
-        />
-      )}
-    </HStack>
+
+        {/* Message Content */}
+        <Box flex="1">
+          <Text
+            fontSize="md"
+            lineHeight="1.6"
+            color="gray.800"
+            whiteSpace="pre-wrap"
+            wordBreak="break-word"
+          >
+            {message.text}
+          </Text>
+
+          {/* Message Actions */}
+          {!isUser && (
+            <HStack spacing={1} mt={3}>
+              <Tooltip label="Good response">
+                <IconButton
+                  aria-label="Good response"
+                  icon={<MdThumbUp />}
+                  size="xs"
+                  variant="ghost"
+                  colorScheme="gray"
+                />
+              </Tooltip>
+              <Tooltip label="Bad response">
+                <IconButton
+                  aria-label="Bad response"
+                  icon={<MdThumbDown />}
+                  size="xs"
+                  variant="ghost"
+                  colorScheme="gray"
+                />
+              </Tooltip>
+              <Tooltip label="Copy">
+                <IconButton
+                  aria-label="Copy"
+                  icon={<MdContentCopy />}
+                  size="xs"
+                  variant="ghost"
+                  colorScheme="gray"
+                />
+              </Tooltip>
+              <Tooltip label="Regenerate">
+                <IconButton
+                  aria-label="Regenerate"
+                  icon={<MdRefresh />}
+                  size="xs"
+                  variant="ghost"
+                  colorScheme="gray"
+                />
+              </Tooltip>
+            </HStack>
+          )}
+        </Box>
+      </HStack>
+    </Box>
   );
 };
 

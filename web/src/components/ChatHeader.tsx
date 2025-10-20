@@ -1,66 +1,76 @@
-import React from 'react';
-import { Box, HStack, Heading, Badge, IconButton, Tooltip } from '@chakra-ui/react';
-import { MdRefresh, MdDelete } from 'react-icons/md';
-import { ChatHeaderProps } from '@/types';
+import React from "react";
+import { Box, HStack, Text, IconButton, Tooltip } from "@chakra-ui/react";
+import { MdRefresh, MdDelete, MdMoreVert, MdMenu } from "react-icons/md";
+import { ChatHeaderProps } from "@/types";
 
 const ChatHeader: React.FC<ChatHeaderProps> = ({
   apiStatus,
   onClear,
   onRetry,
   hasError,
+  sidebarOpen,
+  onToggleSidebar,
 }) => {
   return (
-    <Box
-      bg="white"
-      p={4}
-      mx={4}
-      mt={4}
-      borderRadius="lg"
-      boxShadow="sm"
-      borderBottom="1px"
-      borderColor="gray.200"
-    >
-      <HStack justify="space-between" align="center">
-        <HStack spacing={4}>
-          <Heading size="lg" color="blue.600">
-            Chatty 🤖
-          </Heading>
+    <Box bg="white" borderBottom="1px" borderColor="gray.200" px={4} py={3}>
+      <HStack justify="space-between" align="center" maxW="4xl" mx="auto">
+        <HStack spacing={3}>
+          <IconButton
+            aria-label="Toggle sidebar"
+            icon={<MdMenu />}
+            size="sm"
+            variant="ghost"
+            colorScheme="gray"
+            onClick={onToggleSidebar}
+          />
+          <Text fontSize="lg" fontWeight="semibold" color="gray.800">
+            Chatty
+          </Text>
           {apiStatus && (
-            <Badge
-              colorScheme={apiStatus.status === 'healthy' ? 'green' : 'red'}
-              variant="subtle"
-              px={3}
+            <Box
+              px={2}
               py={1}
-              borderRadius="full"
+              borderRadius="md"
+              bg={apiStatus.status === "healthy" ? "green.100" : "red.100"}
+              color={apiStatus.status === "healthy" ? "green.700" : "red.700"}
+              fontSize="xs"
+              fontWeight="medium"
             >
-              {apiStatus.status === 'healthy' ? 'Online' : 'Offline'}
-            </Badge>
+              {apiStatus.status === "healthy" ? "Online" : "Offline"}
+            </Box>
           )}
         </HStack>
-        
-        <HStack spacing={2}>
+
+        <HStack spacing={1}>
           {hasError && onRetry && (
-            <Tooltip label="Retry last message">
+            <Tooltip label="Regenerate response">
               <IconButton
-                aria-label="Retry last message"
+                aria-label="Regenerate response"
                 icon={<MdRefresh />}
                 size="sm"
                 variant="ghost"
-                colorScheme="blue"
+                colorScheme="gray"
                 onClick={onRetry}
               />
             </Tooltip>
           )}
-          <Tooltip label="Clear conversation">
+          <Tooltip label="New chat">
             <IconButton
-              aria-label="Clear conversation"
+              aria-label="New chat"
               icon={<MdDelete />}
               size="sm"
               variant="ghost"
-              colorScheme="red"
+              colorScheme="gray"
               onClick={onClear}
             />
           </Tooltip>
+          <IconButton
+            aria-label="More options"
+            icon={<MdMoreVert />}
+            size="sm"
+            variant="ghost"
+            colorScheme="gray"
+          />
         </HStack>
       </HStack>
     </Box>

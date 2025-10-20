@@ -1,6 +1,7 @@
-import React from 'react';
-import { HStack, Input, Button } from '@chakra-ui/react';
-import { ChatInputProps } from '@/types';
+import React from "react";
+import { Box, HStack, Textarea, IconButton, Text } from "@chakra-ui/react";
+import { MdSend, MdAttachFile } from "react-icons/md";
+import { ChatInputProps } from "@/types";
 
 const ChatInput: React.FC<ChatInputProps> = ({
   input,
@@ -10,41 +11,71 @@ const ChatInput: React.FC<ChatInputProps> = ({
   isTyping,
   isLoading,
 }) => {
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' && !disabled) {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && !e.shiftKey && !disabled) {
+      e.preventDefault();
       onSend();
     }
   };
 
   return (
-    <HStack spacing={3}>
-      <Input
-        value={input}
-        onChange={(e) => setInput(e.target.value)}
-        placeholder="Type your message..."
-        onKeyDown={handleKeyDown}
-        disabled={disabled}
-        size="lg"
-        borderRadius="full"
-        bg="gray.50"
-        _focus={{
-          bg: 'white',
-          boxShadow: '0 0 0 1px #3182ce',
+    <Box position="relative">
+      <HStack
+        spacing={3}
+        p={3}
+        bg="white"
+        borderRadius="xl"
+        border="1px"
+        borderColor="gray.300"
+        _focusWithin={{
+          borderColor: "blue.500",
+          boxShadow: "0 0 0 1px #3182ce",
         }}
-      />
-      <Button
-        onClick={onSend}
-        disabled={!input.trim() || disabled}
-        colorScheme="blue"
-        size="lg"
-        borderRadius="full"
-        px={6}
-        isLoading={isLoading}
-        loadingText="Sending"
       >
-        {isTyping ? '...' : 'Send'}
-      </Button>
-    </HStack>
+        <IconButton
+          aria-label="Attach file"
+          icon={<MdAttachFile />}
+          size="sm"
+          variant="ghost"
+          colorScheme="gray"
+          isDisabled={disabled}
+        />
+
+        <Textarea
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          placeholder="Message Chatty..."
+          onKeyDown={handleKeyDown}
+          disabled={disabled}
+          resize="none"
+          border="none"
+          _focus={{
+            boxShadow: "none",
+          }}
+          _placeholder={{
+            color: "gray.500",
+          }}
+          minH="24px"
+          maxH="200px"
+          fontSize="md"
+          lineHeight="1.5"
+        />
+
+        <IconButton
+          aria-label="Send message"
+          icon={<MdSend />}
+          size="sm"
+          colorScheme="blue"
+          onClick={onSend}
+          disabled={!input.trim() || disabled}
+          isLoading={isLoading}
+        />
+      </HStack>
+
+      <Text fontSize="xs" color="gray.500" mt={2} textAlign="center">
+        Chatty can make mistakes. Consider checking important information.
+      </Text>
+    </Box>
   );
 };
 
