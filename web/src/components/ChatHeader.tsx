@@ -2,29 +2,27 @@ import React, { memo, useMemo } from "react";
 import { Box, HStack, Text } from "@chakra-ui/react";
 import { MdRefresh, MdDelete, MdMoreVert, MdMenu } from "react-icons/md";
 import { ChatHeaderProps } from "@/types";
-import { useTheme } from "@/contexts";
 import { ThemeToggle, IconButton } from "@/components";
-import { getCommonStyles, getStatusColors } from "@/theme/styles";
+import { useThemeColors } from "@/theme/colors";
 
 const ChatHeader: React.FC<ChatHeaderProps> = memo(
   ({ apiStatus, onClear, onRetry, hasError, sidebarOpen, onToggleSidebar }) => {
-    const { theme } = useTheme();
-
-    const styles = useMemo(() => getCommonStyles(theme), [theme]);
+    const colors = useThemeColors();
 
     const statusColors = useMemo(() => {
       if (!apiStatus) return null;
-      return getStatusColors(
-        theme,
-        apiStatus.status === "healthy" ? "online" : "offline",
-      );
-    }, [apiStatus, theme]);
+      const isOnline = apiStatus.status === "healthy";
+      return {
+        bg: isOnline ? "green.100" : "red.100",
+        text: isOnline ? "green.800" : "red.800",
+      };
+    }, [apiStatus]);
 
     return (
       <Box
-        bg={styles.container.bg}
+        bg={colors.background.primary}
         borderBottom="1px"
-        borderColor={styles.border.borderColor}
+        borderColor={colors.border.primary}
         px={4}
         py={3}
       >
@@ -41,7 +39,7 @@ const ChatHeader: React.FC<ChatHeaderProps> = memo(
             <Text
               fontSize="lg"
               fontWeight="semibold"
-              color={styles.container.color}
+              color={colors.text.primary}
             >
               Chatty
             </Text>

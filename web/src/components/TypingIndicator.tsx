@@ -1,8 +1,7 @@
 import React, { memo, useMemo } from "react";
 import { Box, Text, HStack } from "@chakra-ui/react";
 import { keyframes } from "@emotion/react";
-import { useTheme } from "@/contexts";
-import { getCommonStyles, getAvatarConfig } from "@/theme/styles";
+import { useThemeColors } from "@/theme/colors";
 
 const bounce = keyframes`
   0%, 60%, 100% {
@@ -14,10 +13,7 @@ const bounce = keyframes`
 `;
 
 const TypingIndicator: React.FC = memo(() => {
-  const { theme } = useTheme();
-
-  const styles = useMemo(() => getCommonStyles(theme), [theme]);
-  const avatarConfig = useMemo(() => getAvatarConfig("bot"), []);
+  const colors = useThemeColors();
 
   const dots = useMemo(
     () => [{ delay: "0s" }, { delay: "0.2s" }, { delay: "0.4s" }],
@@ -28,9 +24,9 @@ const TypingIndicator: React.FC = memo(() => {
     <Box
       py={6}
       px={4}
-      bg={styles.message.bot.bg}
+      bg={colors.background.secondary}
       borderBottom="1px"
-      borderColor={styles.border.borderColor}
+      borderColor={colors.border.primary}
     >
       <HStack align="flex-start" spacing={4} maxW="4xl" mx="auto">
         {/* Avatar */}
@@ -38,7 +34,7 @@ const TypingIndicator: React.FC = memo(() => {
           w={8}
           h={8}
           borderRadius="full"
-          bg={avatarConfig.bg}
+          bg="blue.500"
           display="flex"
           alignItems="center"
           justifyContent="center"
@@ -46,7 +42,7 @@ const TypingIndicator: React.FC = memo(() => {
           mt={1}
         >
           <Text fontSize="sm" color="white" fontWeight="bold">
-            {avatarConfig.text}
+            B
           </Text>
         </Box>
 

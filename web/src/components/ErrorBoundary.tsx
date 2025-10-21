@@ -1,8 +1,7 @@
 import React, { Component, ErrorInfo, ReactNode } from "react";
 import { Box, VStack, Text, Button } from "@chakra-ui/react";
 import { MdRefresh, MdError } from "react-icons/md";
-import { useTheme } from "@/contexts";
-import { getTextColor, getCommonStyles } from "@/theme/styles";
+import { useThemeColors } from "@/theme/colors";
 
 interface Props {
   children: ReactNode;
@@ -42,8 +41,7 @@ class ErrorBoundary extends Component<Props, State> {
 }
 
 const ErrorFallback: React.FC<{ error?: Error }> = ({ error }) => {
-  const { theme } = useTheme();
-  const styles = getCommonStyles(theme);
+  const colors = useThemeColors();
 
   const handleRetry = () => {
     window.location.reload();
@@ -55,7 +53,7 @@ const ErrorFallback: React.FC<{ error?: Error }> = ({ error }) => {
       display="flex"
       alignItems="center"
       justifyContent="center"
-      bg={styles.container.bg}
+      bg={colors.background.primary}
       px={4}
     >
       <VStack spacing={6} maxW="md" textAlign="center">
@@ -72,22 +70,22 @@ const ErrorFallback: React.FC<{ error?: Error }> = ({ error }) => {
         </Box>
 
         <VStack spacing={3}>
-          <Text fontSize="xl" fontWeight="bold" color={getTextColor(theme)}>
+          <Text fontSize="xl" fontWeight="bold" color={colors.text.primary}>
             Oops! Something went wrong
           </Text>
-          <Text fontSize="md" color={getTextColor(theme, "secondary")}>
+          <Text fontSize="md" color={colors.text.secondary}>
             We encountered an unexpected error. Please try refreshing the page.
           </Text>
           {error && (
             <Text
               fontSize="sm"
-              color={getTextColor(theme, "tertiary")}
+              color={colors.text.tertiary}
               fontFamily="mono"
-              bg={styles.container.bg}
+              bg={colors.background.secondary}
               p={3}
               borderRadius="md"
               border="1px"
-              borderColor={styles.border.borderColor}
+              borderColor={colors.border.primary}
               maxW="full"
               overflow="auto"
             >

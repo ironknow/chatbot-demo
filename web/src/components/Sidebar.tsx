@@ -3,7 +3,7 @@ import { Box, VStack, HStack, Text, Button, Spinner, Center } from "@chakra-ui/r
 import { MdAdd, MdChat } from "react-icons/md";
 import { Conversation } from "@/types";
 import { formatDistanceToNow } from "date-fns";
-import { useTheme } from "@/contexts";
+import { useThemeColors } from "@/theme/colors";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -25,30 +25,7 @@ const Sidebar: React.FC<SidebarProps> = memo(
     onCreateNew,
     isLoading
   }) => {
-    const { theme } = useTheme();
-
-    // Theme-aware colors using your system
-    const sidebarBg = theme === "light" ? "gray.50" : "gray.900";
-    const borderColor = theme === "light" ? "gray.200" : "gray.700";
-    const headerTextColor = theme === "light" ? "gray.900" : "white";
-    const loadingTextColor = theme === "light" ? "gray.500" : "gray.400";
-    const emptyIconBg = theme === "light" ? "gray.100" : "gray.800";
-    const emptyTextColor = theme === "light" ? "gray.500" : "gray.400";
-    const emptySubTextColor = theme === "light" ? "gray.400" : "gray.500";
-    const footerTextColor = theme === "light" ? "gray.500" : "gray.400";
-
-    // Conversation button colors
-    const activeBg = theme === "light" ? "blue.50" : "blue.900";
-    const activeBorder = theme === "light" ? "blue.200" : "blue.800";
-    const hoverBg = theme === "light" ? "blue.100" : "blue.800";
-    const inactiveHoverBg = theme === "light" ? "gray.100" : "gray.800";
-    const activeTextColor = theme === "light" ? "blue.900" : "blue.100";
-    const inactiveTextColor = theme === "light" ? "gray.900" : "gray.100";
-    const activeTimeColor = theme === "light" ? "blue.600" : "blue.400";
-    const inactiveTimeColor = theme === "light" ? "gray.400" : "gray.500";
-    const activeSubTextColor = theme === "light" ? "blue.700" : "blue.300";
-    const inactiveSubTextColor = theme === "light" ? "gray.500" : "gray.400";
-    const activeDotColor = theme === "light" ? "blue.600" : "blue.400";
+    const colors = useThemeColors();
     const formatLastMessage = (conversation: Conversation): string => {
       if (conversation.messages && conversation.messages.length > 0) {
         const lastMessage = conversation.messages[0];
@@ -77,17 +54,17 @@ const Sidebar: React.FC<SidebarProps> = memo(
         zIndex={10}
         w="320px"
         h="100vh"
-        bg={sidebarBg}
+        bg={colors.background.primary}
         borderRight="1px"
-        borderColor={borderColor}
+        borderColor={colors.border.primary}
         shadow="xl"
         display="flex"
         flexDirection="column"
       >
         {/* Header */}
-        <Box p={4} borderBottom="1px" borderColor={borderColor}>
+        <Box p={4} borderBottom="1px" borderColor={colors.border.primary}>
           <HStack justify="space-between" align="center">
-            <Text fontSize="lg" fontWeight="semibold" color={headerTextColor}>
+            <Text fontSize="lg" fontWeight="semibold" color={colors.text.primary}>
               Conversations
             </Text>
             <Button
@@ -111,7 +88,7 @@ const Sidebar: React.FC<SidebarProps> = memo(
             <Center p={4}>
               <VStack spacing={2}>
                 <Spinner color="blue.500" size="sm" />
-                <Text fontSize="sm" color={loadingTextColor}>
+                <Text fontSize="sm" color={colors.text.tertiary}>
                   Loading conversations...
                 </Text>
               </VStack>
@@ -122,7 +99,7 @@ const Sidebar: React.FC<SidebarProps> = memo(
                 <Box
                   w={16}
                   h={16}
-                  bg={emptyIconBg}
+                  bg={colors.background.tertiary}
                   borderRadius="full"
                   display="flex"
                   alignItems="center"
@@ -131,10 +108,10 @@ const Sidebar: React.FC<SidebarProps> = memo(
                   <MdChat size={32} color="#9CA3AF" />
                 </Box>
                 <VStack spacing={2}>
-                  <Text fontSize="md" fontWeight="medium" color={emptyTextColor}>
+                  <Text fontSize="md" fontWeight="medium" color={colors.text.secondary}>
                     No conversations yet
                   </Text>
-                  <Text fontSize="sm" color={emptySubTextColor}>
+                  <Text fontSize="sm" color={colors.text.muted}>
                     Start a new conversation to begin!
                   </Text>
                 </VStack>
@@ -151,11 +128,11 @@ const Sidebar: React.FC<SidebarProps> = memo(
                   h="auto"
                   p={3}
                   borderRadius="md"
-                  bg={currentConversationId === conversation.id ? activeBg : "transparent"}
+                  bg={currentConversationId === conversation.id ? colors.blue.bg : "transparent"}
                   border={currentConversationId === conversation.id ? "1px" : "none"}
-                  borderColor={currentConversationId === conversation.id ? activeBorder : "transparent"}
+                  borderColor={currentConversationId === conversation.id ? colors.blue.border : "transparent"}
                   _hover={{
-                    bg: currentConversationId === conversation.id ? hoverBg : inactiveHoverBg
+                    bg: currentConversationId === conversation.id ? colors.blue.bgHover : colors.interactive.hover
                   }}
                   transition="all 0.2s"
                   position="relative"
@@ -165,7 +142,7 @@ const Sidebar: React.FC<SidebarProps> = memo(
                       <Text
                         fontSize="sm"
                         fontWeight="medium"
-                        color={currentConversationId === conversation.id ? activeTextColor : inactiveTextColor}
+                        color={currentConversationId === conversation.id ? colors.blue.text : colors.text.primary}
                         noOfLines={1}
                         flex="1"
                       >
@@ -173,7 +150,7 @@ const Sidebar: React.FC<SidebarProps> = memo(
                       </Text>
                       <Text
                         fontSize="xs"
-                        color={currentConversationId === conversation.id ? activeTimeColor : inactiveTimeColor}
+                        color={currentConversationId === conversation.id ? colors.blue.textMuted : colors.text.muted}
                       >
                         {formatTime(conversation.updatedAt)}
                       </Text>
@@ -181,7 +158,7 @@ const Sidebar: React.FC<SidebarProps> = memo(
 
                     <Text
                       fontSize="xs"
-                      color={currentConversationId === conversation.id ? activeSubTextColor : inactiveSubTextColor}
+                      color={currentConversationId === conversation.id ? colors.blue.textSecondary : colors.text.secondary}
                       noOfLines={1}
                     >
                       {formatLastMessage(conversation)}
@@ -191,7 +168,7 @@ const Sidebar: React.FC<SidebarProps> = memo(
                       <HStack justify="space-between" align="center">
                         <Text
                           fontSize="xs"
-                          color={currentConversationId === conversation.id ? activeTimeColor : inactiveTimeColor}
+                          color={currentConversationId === conversation.id ? colors.blue.textMuted : colors.text.muted}
                         >
                           {conversation._count.messages} messages
                         </Text>
@@ -199,7 +176,7 @@ const Sidebar: React.FC<SidebarProps> = memo(
                           <Box
                             w={2}
                             h={2}
-                            bg={activeDotColor}
+                            bg={colors.blue.dot}
                             borderRadius="full"
                           />
                         )}
@@ -213,8 +190,8 @@ const Sidebar: React.FC<SidebarProps> = memo(
         </Box>
 
         {/* Footer */}
-        <Box p={4} borderTop="1px" borderColor={borderColor}>
-          <Text fontSize="xs" color={footerTextColor} textAlign="center">
+        <Box p={4} borderTop="1px" borderColor={colors.border.primary}>
+          <Text fontSize="xs" color={colors.text.tertiary} textAlign="center">
             {conversations.length} conversation{conversations.length !== 1 ? 's' : ''}
           </Text>
         </Box>

@@ -4,8 +4,7 @@ import {
   IconButtonProps as ChakraIconButtonProps,
   Tooltip,
 } from "@chakra-ui/react";
-import { useTheme } from "@/contexts";
-import { getIconButtonStyles } from "@/theme/styles";
+import { useThemeColors } from "@/theme/colors";
 
 interface IconButtonProps extends ChakraIconButtonProps {
   tooltip?: string;
@@ -13,15 +12,21 @@ interface IconButtonProps extends ChakraIconButtonProps {
 }
 
 const IconButton: React.FC<IconButtonProps> = ({ tooltip, icon, ...props }) => {
-  const { theme } = useTheme();
-  const styles = getIconButtonStyles(theme);
+  const colors = useThemeColors();
 
   const button = (
     <ChakraIconButton
       variant="ghost"
       transition="all 0.2s"
       icon={icon}
-      {...styles}
+      color={colors.text.secondary}
+      _hover={{
+        bg: colors.interactive.hover,
+        transform: "scale(1.05)",
+      }}
+      _active={{
+        transform: "scale(0.95)",
+      }}
       {...props}
     />
   );

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Message, UseChatReturn, ApiHealthResponse, Conversation } from "@/types";
 import { chatService } from "@/services/chatService";
-import { THEME_CONFIG } from "@/theme/styles";
+import { THEME_CONFIG } from "@/theme/constants";
 
 export const useChat = (): UseChatReturn => {
   const [messages, setMessages] = useState<Message[]>([]);

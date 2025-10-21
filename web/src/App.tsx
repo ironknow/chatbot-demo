@@ -1,7 +1,6 @@
 import React, { useRef, useState, useCallback, useMemo } from "react";
 import { Box, Flex } from "@chakra-ui/react";
 import { useChat } from "@/hooks/useChat";
-import { useTheme } from "@/contexts";
 import {
   ChatHeader,
   ChatMessage,
@@ -11,11 +10,12 @@ import {
   Sidebar,
   ErrorBoundary,
 } from "@/components";
-import { getCommonStyles, THEME_CONFIG } from "@/theme/styles";
+import { THEME_CONFIG } from "@/theme/constants";
+import { useThemeColors } from "@/theme/colors";
 
 const App: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const { theme } = useTheme();
+  const colors = useThemeColors();
 
   const {
     messages,
@@ -48,7 +48,6 @@ const App: React.FC = () => {
     setSidebarOpen((prev) => !prev);
   }, []);
 
-  const styles = useMemo(() => getCommonStyles(theme), [theme]);
 
   const mainContentStyles = useMemo(
     () => ({
@@ -80,7 +79,7 @@ const App: React.FC = () => {
 
   return (
     <ErrorBoundary>
-      <Flex height="100vh" bg={styles.container.bg}>
+      <Flex height="100vh" bg={colors.background.primary}>
         {/* Sidebar */}
         <Sidebar
           isOpen={sidebarOpen}
@@ -106,7 +105,7 @@ const App: React.FC = () => {
           <Box
             flex="1"
             overflowY="auto"
-            bg={styles.container.bg}
+            bg={colors.background.primary}
             px={THEME_CONFIG.CONTENT_PADDING}
             py={THEME_CONFIG.MESSAGE_PADDING}
           >
@@ -116,9 +115,9 @@ const App: React.FC = () => {
           </Box>
 
           <Box
-            bg={styles.container.bg}
+            bg={colors.background.primary}
             borderTop="1px"
-            borderColor={styles.border.borderColor}
+            borderColor={colors.border.primary}
             px={THEME_CONFIG.CONTENT_PADDING}
             py={THEME_CONFIG.CONTENT_PADDING}
           >

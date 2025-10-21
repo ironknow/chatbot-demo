@@ -7,22 +7,18 @@ import {
   MdRefresh,
 } from "react-icons/md";
 import { ChatMessageProps } from "@/types";
-import { useTheme } from "@/contexts";
-import {
-  getCommonStyles,
-  getAvatarConfig,
-  MESSAGE_ACTIONS,
-} from "@/theme/styles";
+import { useThemeColors } from "@/theme/colors";
+
+const MESSAGE_ACTIONS = [
+  { icon: "MdThumbUp", label: "Good response", ariaLabel: "Good response" },
+  { icon: "MdThumbDown", label: "Bad response", ariaLabel: "Bad response" },
+  { icon: "MdContentCopy", label: "Copy", ariaLabel: "Copy" },
+  { icon: "MdRefresh", label: "Regenerate", ariaLabel: "Regenerate" },
+];
 
 const ChatMessage: React.FC<ChatMessageProps> = memo(({ message, index }) => {
   const isUser = message.sender === "user";
-  const { theme } = useTheme();
-
-  const styles = useMemo(() => getCommonStyles(theme), [theme]);
-  const avatarConfig = useMemo(
-    () => getAvatarConfig(isUser ? "user" : "bot"),
-    [isUser],
-  );
+  const colors = useThemeColors();
 
   const messageActions = useMemo(() => {
     if (isUser) return null;
@@ -58,9 +54,9 @@ const ChatMessage: React.FC<ChatMessageProps> = memo(({ message, index }) => {
     <Box
       py={6}
       px={4}
-      bg={isUser ? styles.message.user.bg : styles.message.bot.bg}
+      bg={isUser ? colors.background.primary : colors.background.secondary}
       borderBottom="1px"
-      borderColor={styles.border.borderColor}
+      borderColor={colors.border.primary}
     >
       <HStack align="flex-start" spacing={4} maxW="4xl" mx="auto">
         {/* Avatar */}
@@ -68,7 +64,7 @@ const ChatMessage: React.FC<ChatMessageProps> = memo(({ message, index }) => {
           w={8}
           h={8}
           borderRadius="full"
-          bg={avatarConfig.bg}
+          bg={isUser ? "green.500" : "blue.500"}
           display="flex"
           alignItems="center"
           justifyContent="center"
@@ -76,7 +72,7 @@ const ChatMessage: React.FC<ChatMessageProps> = memo(({ message, index }) => {
           mt={1}
         >
           <Text fontSize="sm" color="white" fontWeight="bold">
-            {avatarConfig.text}
+            {isUser ? "U" : "B"}
           </Text>
         </Box>
 
@@ -85,7 +81,7 @@ const ChatMessage: React.FC<ChatMessageProps> = memo(({ message, index }) => {
           <Text
             fontSize="md"
             lineHeight="1.6"
-            color={styles.container.color}
+            color={colors.text.primary}
             whiteSpace="pre-wrap"
             wordBreak="break-word"
           >

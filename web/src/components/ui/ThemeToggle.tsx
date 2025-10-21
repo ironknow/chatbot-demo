@@ -1,6 +1,6 @@
 import React from "react";
 import { MdLightMode, MdDarkMode } from "react-icons/md";
-import { useTheme } from "@/contexts";
+import { useColorMode } from "@chakra-ui/react";
 import IconButton from "./IconButton";
 
 interface ThemeToggleProps {
@@ -12,16 +12,16 @@ const ThemeToggle: React.FC<ThemeToggleProps> = ({
   size = "sm",
   variant = "ghost",
 }) => {
-  const { theme, toggleTheme } = useTheme();
+  const { colorMode, toggleColorMode } = useColorMode();
 
   return (
     <IconButton
       aria-label="Toggle theme"
-      icon={theme === "light" ? <MdDarkMode /> : <MdLightMode />}
+      icon={colorMode === "light" ? <MdDarkMode /> : <MdLightMode />}
       size={size}
       variant={variant}
-      onClick={toggleTheme}
-      tooltip={`Switch to ${theme === "light" ? "dark" : "light"} theme`}
+      onClick={toggleColorMode}
+      tooltip={`Switch to ${colorMode === "light" ? "dark" : "light"} theme`}
     />
   );
 };
