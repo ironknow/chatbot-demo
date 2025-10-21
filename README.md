@@ -5,6 +5,8 @@ A full-stack chatbot application powered by Groq's fast LLM models (Llama 3.1), 
 ## ✨ Features
 
 - **Real AI Integration**: Powered by Groq's Llama 3.1 models (FREE!)
+- **PostgreSQL Database**: Persistent conversation storage with Prisma ORM
+- **Docker Support**: Easy database setup with Docker Compose
 - **TypeScript**: Full type safety and better development experience
 - **CRACO**: Customizable React app configuration
 - **Modular Architecture**: Organized components, hooks, and services
@@ -30,7 +32,21 @@ A full-stack chatbot application powered by Groq's fast LLM models (Llama 3.1), 
 
 - Node.js (v16 or higher)
 - pnpm package manager
+- Docker and Docker Compose (v2+)
 - Groq API key (FREE!)
+
+### Option 1: Quick Start (Recommended)
+
+```bash
+# One command setup - installs deps, starts database, configures API
+pnpm quick-start
+
+# Then edit your API key and start development
+# Edit api/.env with your GROQ_API_KEY
+pnpm dev
+```
+
+### Option 2: Manual Setup
 
 ### 1. Install Dependencies
 
@@ -38,13 +54,23 @@ A full-stack chatbot application powered by Groq's fast LLM models (Llama 3.1), 
 pnpm install
 ```
 
-### 2. Set Up Groq API Key
+### 2. Start Database
+
+```bash
+# Start PostgreSQL with Docker
+pnpm db:up
+
+# Or use the complete setup
+pnpm db:setup
+```
+
+### 3. Set Up Groq API Key
 
 Create a `.env` file in the `api` directory:
 
 ```bash
 cd api
-cp .env.example .env
+cp env.example .env
 ```
 
 Edit the `.env` file and add your Groq API key:
@@ -56,7 +82,7 @@ MAX_TOKENS=500
 TEMPERATURE=0.7
 ```
 
-### 3. Get Groq API Key (FREE!)
+### 4. Get Groq API Key (FREE!)
 
 1. Go to [Groq Console](https://console.groq.com/)
 2. Sign up or log in (it's free!)
@@ -64,7 +90,7 @@ TEMPERATURE=0.7
 4. Create a new API key
 5. Copy the key and paste it in your `.env` file
 
-### 4. Start the Application
+### 5. Start the Application
 
 ```bash
 # Development - Start both frontend and backend with hot reloading
@@ -79,6 +105,14 @@ pnpm build      # Build frontend
 pnpm start      # Start API server (production)
 pnpm serve:web  # Serve built frontend
 
+# Database management
+pnpm db:up      # Start database
+pnpm db:down    # Stop database
+pnpm db:status  # Check database status
+pnpm db:logs    # View database logs
+pnpm db:studio  # Open Prisma Studio
+pnpm db:reset   # Reset database (delete all data)
+
 # Other useful commands
 pnpm test       # Run all tests
 pnpm lint       # Lint all code
@@ -86,10 +120,11 @@ pnpm clean      # Clean node_modules
 pnpm health     # Check API health
 ```
 
-### 5. Open the Application
+### 6. Open the Application
 
 - Frontend: http://localhost:3000
-- Backend API: http://localhost:5000
+- Backend API: http://localhost:3001
+- pgAdmin: http://localhost:5050 (admin@chatbot.com / admin)
 
 ## 🛠 Configuration
 
@@ -150,10 +185,10 @@ chatbot-demo/
 ## 🔧 API Endpoints
 
 - `POST /api/chat` - Send a message to the chatbot
+- `GET /api/chat` - Get all conversations
 - `GET /api/chat/:conversationId` - Get conversation history
 - `DELETE /api/chat/:conversationId` - Clear conversation
-- `GET /api/health` - Health check
-- `GET /api/health` - Check API status and configuration
+- `GET /api/health` - Health check and database status
 
 ## 💡 Usage Examples
 

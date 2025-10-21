@@ -24,7 +24,21 @@
     "clean:build": "pnpm --recursive exec rm -rf build dist",
     "install:all": "pnpm install",
     "setup": "pnpm install && pnpm --filter api exec cp .env.example .env",
-    "health": "curl -s http://localhost:5000/api/health | jq . || echo 'API not running'"
+    "quick-start": "node scripts/quick-start.js",
+    "health": "curl -s http://localhost:5000/api/health | jq . || echo 'API not running'",
+    "db:up": "node scripts/db-manager.js up",
+    "db:down": "node scripts/db-manager.js down",
+    "db:restart": "node scripts/db-manager.js restart",
+    "db:logs": "node scripts/db-manager.js logs",
+    "db:status": "node scripts/db-manager.js status",
+    "db:reset": "node scripts/db-manager.js reset",
+    "db:setup": "node scripts/db-manager.js setup",
+    "db:help": "node scripts/db-manager.js help",
+    "db:studio": "pnpm --filter api db:studio",
+    "db:seed": "pnpm --filter api db:seed",
+    "db:generate": "pnpm --filter api db:generate",
+    "db:push": "pnpm --filter api db:push",
+    "db:migrate": "pnpm --filter api db:migrate"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"
