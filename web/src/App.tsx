@@ -24,18 +24,25 @@ const App: React.FC = () => {
     isTyping,
     isLoading,
     error,
+    conversationId,
+    conversations,
     sendMessage,
     clearConversation,
     retryLastMessage,
+    switchConversation,
+    createNewConversation,
     apiStatus,
   } = useChat();
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const handleNewChat = useCallback(() => {
-    clearConversation();
-    setSidebarOpen(false); // Close sidebar on mobile after new chat
-  }, [clearConversation]);
+    createNewConversation();
+  }, [createNewConversation]);
+
+  const handleSelectConversation = useCallback((conversationId: string) => {
+    switchConversation(conversationId);
+  }, [switchConversation]);
 
   const toggleSidebar = useCallback(() => {
     setSidebarOpen((prev) => !prev);
@@ -78,7 +85,11 @@ const App: React.FC = () => {
         <Sidebar
           isOpen={sidebarOpen}
           onToggle={toggleSidebar}
-          onNewChat={handleNewChat}
+          conversations={conversations}
+          currentConversationId={conversationId}
+          onSelectConversation={handleSelectConversation}
+          onCreateNew={handleNewChat}
+          isLoading={isLoading}
         />
 
         {/* Main Content */}

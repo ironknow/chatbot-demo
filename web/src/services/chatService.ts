@@ -1,5 +1,5 @@
 import axios, { AxiosResponse } from "axios";
-import { ChatResponse, ApiHealthResponse, Message, ChatService } from "@/types";
+import { ChatResponse, ApiHealthResponse, Message, ChatService, ConversationsResponse } from "@/types";
 
 class ChatServiceImpl implements ChatService {
   private baseURL = "http://localhost:5000/api";
@@ -34,6 +34,18 @@ class ChatServiceImpl implements ChatService {
     } catch (error) {
       console.error("Error getting conversation:", error);
       throw new Error("Failed to get conversation");
+    }
+  }
+
+  async getAllConversations(): Promise<ConversationsResponse> {
+    try {
+      const response: AxiosResponse<ConversationsResponse> = await axios.get(
+        `${this.baseURL}/chat`,
+      );
+      return response.data;
+    } catch (error) {
+      console.error("Error getting conversations:", error);
+      throw new Error("Failed to get conversations");
     }
   }
 

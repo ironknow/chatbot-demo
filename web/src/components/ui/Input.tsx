@@ -1,4 +1,4 @@
-import React from "react";
+import React, { forwardRef } from "react";
 import {
   Input as ChakraInput,
   Textarea as ChakraTextarea,
@@ -89,13 +89,13 @@ const Input: React.FC<CustomInputProps> = ({
   );
 };
 
-const Textarea: React.FC<CustomTextareaProps> = ({
+const Textarea = forwardRef<HTMLTextAreaElement, CustomTextareaProps>(({
   leftIcon,
   rightIcon,
   onRightIconClick,
   disabled,
   ...props
-}) => {
+}, ref) => {
   const bgColor = useColorModeValue("white", "gray.700");
   const borderColor = useColorModeValue("gray.300", "gray.600");
   const focusBorderColor = useColorModeValue("blue.500", "blue.400");
@@ -119,6 +119,7 @@ const Textarea: React.FC<CustomTextareaProps> = ({
       >
         {leftIcon}
         <ChakraTextarea
+          ref={ref}
           border="none"
           bg="transparent"
           resize="none"
@@ -147,6 +148,7 @@ const Textarea: React.FC<CustomTextareaProps> = ({
 
   return (
     <ChakraTextarea
+      ref={ref}
       bg={bgColor}
       borderColor={borderColor}
       disabled={disabled}
@@ -160,6 +162,8 @@ const Textarea: React.FC<CustomTextareaProps> = ({
       {...props}
     />
   );
-};
+});
+
+Textarea.displayName = "Textarea";
 
 export { Input, Textarea };

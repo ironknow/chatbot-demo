@@ -1,8 +1,21 @@
 // Message types
 export interface Message {
+  id?: string;
   sender: "user" | "bot";
   text: string;
   timestamp: string;
+}
+
+// Conversation types
+export interface Conversation {
+  id: string;
+  title: string;
+  createdAt: string;
+  updatedAt: string;
+  messages?: Message[];
+  _count?: {
+    messages: number;
+  };
 }
 
 // API response types
@@ -10,6 +23,10 @@ export interface ChatResponse {
   reply: string;
   conversationId: string;
   timestamp: string;
+}
+
+export interface ConversationsResponse {
+  conversations: Conversation[];
 }
 
 export interface ApiHealthResponse {
@@ -58,9 +75,14 @@ export interface UseChatReturn {
   isLoading: boolean;
   error: string | null;
   conversationId: string;
+  conversations: Conversation[];
+  currentConversation: Conversation | null;
   sendMessage: () => void;
   clearConversation: () => void;
   retryLastMessage: () => void;
+  loadConversations: () => Promise<void>;
+  switchConversation: (conversationId: string) => Promise<void>;
+  createNewConversation: () => void;
   apiStatus: ApiHealthResponse | null;
 }
 
@@ -71,6 +93,7 @@ export interface ChatService {
     conversationId: string,
   ) => Promise<ChatResponse>;
   getConversation: (conversationId: string) => Promise<{ messages: Message[] }>;
+  getAllConversations: () => Promise<ConversationsResponse>;
   clearConversation: (conversationId: string) => Promise<{ message: string }>;
   checkHealth: () => Promise<ApiHealthResponse>;
 }
