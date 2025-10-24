@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { useParams } from "react-router-dom";
 import {
   Message,
   UseChatReturn,
@@ -11,13 +12,18 @@ import { THEME_CONFIG } from "@/theme/constants";
 import { useFlowTracking } from "./useFlowTracking";
 
 export const useChat = (): UseChatReturn => {
+  const { conversationId: urlConversationId } = useParams<{
+    conversationId: string;
+  }>();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState<string>("");
   const [isTyping, setIsTyping] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [conversationId, setConversationId] = useState<string>(
-    () => `conv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+    () =>
+      urlConversationId ||
+      `conv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
   );
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [currentConversation, setCurrentConversation] =
@@ -57,6 +63,35 @@ export const useChat = (): UseChatReturn => {
     }
   }, []);
 
+  // Load messages for a specific conversation
+  const loadConversationMessages = useCallback(
+    async (conversationId: string) => {
+      try {
+        console.log('Loading messages for conversation:', conversationId);
+        setIsLoading(true);
+        setError(null);
+
+        // Load messages for the specified conversation
+        const response = await chatService.getConversation(conversationId);
+        console.log('Loaded messages:', response.messages.length);
+        setMessages(response.messages);
+
+        // Find and set current conversation
+        const conversation = conversations.find((c) => c.id === conversationId);
+        setCurrentConversation(conversation || null);
+      } catch (err) {
+        console.error("Failed to load conversation messages:", err);
+        // If conversation doesn't exist, show empty state instead of error
+        setMessages([]);
+        setCurrentConversation(null);
+        setError(null); // Don't show error for non-existent conversations
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [conversations],
+  );
+
   // Load conversations and check API status on component mount
   useEffect(() => {
     const initializeChat = async () => {
@@ -78,6 +113,30 @@ export const useChat = (): UseChatReturn => {
 
     initializeChat();
   }, [loadConversations]);
+
+  // Handle URL conversation changes
+  useEffect(() => {
+    if (urlConversationId && urlConversationId !== conversationId) {
+      console.log('Loading conversation from URL:', urlConversationId);
+      setConversationId(urlConversationId);
+      // Load the conversation messages
+      loadConversationMessages(urlConversationId);
+    }
+  }, [urlConversationId, conversationId, loadConversationMessages]);
+
+  // Load conversation when URL changes and conversations are loaded
+  useEffect(() => {
+    if (urlConversationId && conversations.length > 0) {
+      console.log('Conversations loaded, checking if URL conversation exists:', urlConversationId);
+      const conversationExists = conversations.some(c => c.id === urlConversationId);
+      if (conversationExists) {
+        loadConversationMessages(urlConversationId);
+      } else {
+        console.log('Conversation not found in list, loading directly from API');
+        loadConversationMessages(urlConversationId);
+      }
+    }
+  }, [urlConversationId, conversations, loadConversationMessages]);
 
   // Switch to a different conversation
   const switchConversation = useCallback(
@@ -190,8 +249,8 @@ export const useChat = (): UseChatReturn => {
           }
         },
         THEME_CONFIG.TYPING_DELAY_MIN +
-          Math.random() *
-            (THEME_CONFIG.TYPING_DELAY_MAX - THEME_CONFIG.TYPING_DELAY_MIN),
+        Math.random() *
+        (THEME_CONFIG.TYPING_DELAY_MAX - THEME_CONFIG.TYPING_DELAY_MIN),
       );
     } catch (err) {
       console.error("Chat error:", err);

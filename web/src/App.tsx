@@ -1,5 +1,18 @@
-import React, { useRef, useState, useCallback, useMemo } from "react";
+import React, {
+  useRef,
+  useState,
+  useCallback,
+  useMemo,
+  useEffect,
+} from "react";
 import { Box, Flex } from "@chakra-ui/react";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  useParams,
+  useNavigate,
+} from "react-router-dom";
 import { useChat } from "@/hooks/useChat";
 import {
   ChatHeader,
@@ -14,7 +27,10 @@ import {
 import { THEME_CONFIG } from "@/theme/constants";
 import { useThemeColors } from "@/theme/colors";
 
-const App: React.FC = () => {
+// Chat component that handles individual conversations
+const Chat: React.FC = () => {
+  const { conversationId } = useParams<{ conversationId: string }>();
+  const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showFlowVisualizer, setShowFlowVisualizer] = useState(false);
   const colors = useThemeColors();
@@ -26,7 +42,6 @@ const App: React.FC = () => {
     isTyping,
     isLoading,
     error,
-    conversationId,
     conversations,
     sendMessage,
     clearConversation,
@@ -44,22 +59,28 @@ const App: React.FC = () => {
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const handleNewChat = useCallback(() => {
-    createNewConversation();
-    clearFlow();
-  }, [createNewConversation, clearFlow]);
-
+  // Handle conversation switching via URL
   const handleSelectConversation = useCallback(
-    (conversationId: string) => {
-      switchConversation(conversationId);
+    (newConversationId: string) => {
+      navigate(`/chat/${newConversationId}`);
+      switchConversation(newConversationId);
       clearFlow();
+      // Keep sidebar open - don't close it when selecting conversations
     },
-    [switchConversation, clearFlow],
+    [navigate, switchConversation, clearFlow],
   );
 
+  const handleNewChat = useCallback(() => {
+    const newConversationId = `conv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    navigate(`/chat/${newConversationId}`);
+    createNewConversation();
+    clearFlow();
+  }, [navigate, createNewConversation, clearFlow]);
+
   const toggleSidebar = useCallback(() => {
+    console.log('Toggling sidebar from', sidebarOpen, 'to', !sidebarOpen);
     setSidebarOpen((prev) => !prev);
-  }, []);
+  }, [sidebarOpen]);
 
   const handleSendMessage = useCallback(async () => {
     if (!input.trim() || isTyping || isLoading) return;
@@ -102,7 +123,7 @@ const App: React.FC = () => {
           isOpen={sidebarOpen}
           onToggle={toggleSidebar}
           conversations={conversations}
-          currentConversationId={conversationId}
+          currentConversationId={conversationId || null}
           onSelectConversation={handleSelectConversation}
           onCreateNew={handleNewChat}
           isLoading={isLoading}
@@ -163,6 +184,31 @@ const App: React.FC = () => {
         />
       </Flex>
     </ErrorBoundary>
+  );
+};
+
+// Redirect component for root path
+const RootRedirect: React.FC = () => {
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    // Create a new conversation and redirect to it
+    const newConversationId = `conv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    navigate(`/chat/${newConversationId}`, { replace: true });
+  }, [navigate]);
+
+  return null;
+};
+
+// Main App component with routing
+const App: React.FC = () => {
+  return (
+    <Router>
+      <Routes>
+        <Route path="/" element={<RootRedirect />} />
+        <Route path="/chat/:conversationId" element={<Chat />} />
+      </Routes>
+    </Router>
   );
 };
 
