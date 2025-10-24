@@ -1,7 +1,6 @@
 import React, { useRef, useState, useCallback, useMemo } from "react";
 import { Box, Flex } from "@chakra-ui/react";
 import { useChat } from "@/hooks/useChat";
-import { useFlowTracking } from "@/hooks/useFlowTracking";
 import {
   ChatHeader,
   ChatMessage,
@@ -35,20 +34,13 @@ const App: React.FC = () => {
     switchConversation,
     createNewConversation,
     apiStatus,
-  } = useChat();
-
-  const {
+    // Flow tracking data
+    flowData,
     currentStep,
     flowSteps,
-    isProcessing: isFlowProcessing,
-    startFlow,
-    setStep,
-    completeStep,
-    errorStep,
-    completeFlow,
+    isFlowProcessing,
     clearFlow,
-  } = useFlowTracking();
-
+  } = useChat();
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -57,63 +49,22 @@ const App: React.FC = () => {
     clearFlow();
   }, [createNewConversation, clearFlow]);
 
-  const handleSelectConversation = useCallback((conversationId: string) => {
-    switchConversation(conversationId);
-    clearFlow();
-  }, [switchConversation, clearFlow]);
+  const handleSelectConversation = useCallback(
+    (conversationId: string) => {
+      switchConversation(conversationId);
+      clearFlow();
+    },
+    [switchConversation, clearFlow],
+  );
 
   const toggleSidebar = useCallback(() => {
     setSidebarOpen((prev) => !prev);
   }, []);
 
-
-
-
   const handleSendMessage = useCallback(async () => {
     if (!input.trim() || isTyping || isLoading) return;
-
-    // Start flow tracking
-    startFlow();
-    setStep("user-input", { message: input.trim() });
-
-    // Track input processing
-    setStep("input-processing", {
-      conversationId,
-      messageLength: input.trim().length
-    });
-
-    // Track API call
-    setStep("api-call", {
-      endpoint: "/api/chat",
-      payload: { message: input.trim(), conversationId }
-    });
-
-    try {
-      // Call the original sendMessage function
-      await sendMessage();
-
-      // Track successful completion of all steps
-      setTimeout(() => {
-        completeStep("api-call");
-        setStep("backend-processing", { status: "processing" });
-        completeStep("backend-processing");
-
-        setStep("ai-processing", { status: "processing" });
-        completeStep("ai-processing");
-
-        setStep("response-return", { status: "processing" });
-        completeStep("response-return");
-
-        setStep("ui-update", { status: "processing" });
-        completeStep("ui-update");
-
-        completeFlow();
-      }, 100);
-    } catch (error) {
-      errorStep("api-call", error instanceof Error ? error.message : "Unknown error");
-    }
-  }, [input, isTyping, isLoading, conversationId, sendMessage, startFlow, setStep, completeStep, errorStep, completeFlow]);
-
+    await sendMessage();
+  }, [input, isTyping, isLoading, sendMessage]);
 
   const mainContentStyles = useMemo(
     () => ({
@@ -142,7 +93,6 @@ const App: React.FC = () => {
     ),
     [messages, isTyping],
   );
-
 
   return (
     <ErrorBoundary>
@@ -183,7 +133,6 @@ const App: React.FC = () => {
             </Box>
           </Box>
 
-
           <Box
             bg={colors.background.primary}
             borderTop="1px"
@@ -204,13 +153,12 @@ const App: React.FC = () => {
           </Box>
         </Flex>
 
-
         {/* Data Flow Visualizer */}
         <DataFlowVisualizer
           isVisible={showFlowVisualizer}
           onToggle={() => setShowFlowVisualizer(!showFlowVisualizer)}
           currentStep={currentStep || undefined}
-          flowData={flowSteps}
+          flowData={flowData?.steps || flowSteps}
           isProcessing={isFlowProcessing}
         />
       </Flex>

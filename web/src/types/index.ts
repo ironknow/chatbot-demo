@@ -23,6 +23,25 @@ export interface ChatResponse {
   reply: string;
   conversationId: string;
   timestamp: string;
+  flowData?: FlowData;
+}
+
+export interface FlowData {
+  steps: FlowStep[];
+  totalDuration: number;
+  ragUsed?: boolean;
+  model?: string;
+  error?: string;
+}
+
+export interface FlowStep {
+  id: string;
+  name: string;
+  description: string;
+  status: "pending" | "active" | "completed" | "error";
+  duration?: number;
+  data?: any;
+  timestamp?: string;
 }
 
 export interface ConversationsResponse {
@@ -86,6 +105,12 @@ export interface UseChatReturn {
   switchConversation: (conversationId: string) => Promise<void>;
   createNewConversation: () => void;
   apiStatus: ApiHealthResponse | null;
+  // Flow tracking data
+  flowData: FlowData | null;
+  currentStep: string | null;
+  flowSteps: FlowStep[];
+  isFlowProcessing: boolean;
+  clearFlow: () => void;
 }
 
 // Service types
@@ -109,4 +134,3 @@ export interface ChatError {
 
 // Flow types
 export * from "./flow";
-

@@ -10,17 +10,20 @@ export class RAGService {
   async isAvailable() {
     try {
       const response = await fetch(`${this.ragBaseURL}/health`, {
-        method: 'GET',
-        timeout: 5000
+        method: "GET",
+        timeout: 5000,
       });
-      
+
       if (response.ok) {
         const healthData = await response.json();
-        return healthData.status === 'healthy' && healthData.vectorstore_loaded && healthData.llm_loaded;
+        return healthData.status === "healthy" && healthData.rag_flow_ready;
       }
       return false;
     } catch (error) {
-      console.warn('RAG service health check failed:', error.message);
+      console.warn(
+        "RAG service not available - continuing without RAG enhancement:",
+        error.message,
+      );
       return false;
     }
   }
@@ -29,22 +32,24 @@ export class RAGService {
   async searchDocuments(query) {
     try {
       const response = await fetch(`${this.ragBaseURL}/search`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json'
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({ query }),
-        timeout: this.timeout
+        timeout: this.timeout,
       });
 
       if (!response.ok) {
-        throw new Error(`RAG search failed: ${response.status} ${response.statusText}`);
+        throw new Error(
+          `RAG search failed: ${response.status} ${response.statusText}`,
+        );
       }
 
       const data = await response.json();
       return data.results || [];
     } catch (error) {
-      console.error('RAG search error:', error);
+      console.error("RAG search error:", error);
       return [];
     }
   }
@@ -53,22 +58,28 @@ export class RAGService {
   async getRAGResponse(query) {
     try {
       const response = await fetch(`${this.ragBaseURL}/chat`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json'
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({ query }),
-        timeout: this.timeout
+        timeout: this.timeout,
       });
 
       if (!response.ok) {
-        throw new Error(`RAG chat failed: ${response.status} ${response.statusText}`);
+        throw new Error(
+          `RAG chat failed: ${response.status} ${response.statusText}`,
+        );
       }
 
       const data = await response.json();
-      return data.response || data.answer || "I couldn't generate a response from the RAG system.";
+      return (
+        data.response ||
+        data.answer ||
+        "I couldn't generate a response from the RAG system."
+      );
     } catch (error) {
-      console.error('RAG chat error:', error);
+      console.error("RAG chat error:", error);
       return null;
     }
   }
@@ -77,28 +88,33 @@ export class RAGService {
   async getContextualSearch(query, maxResults = 3) {
     try {
       const results = await this.searchDocuments(query);
-      
+
       if (results.length === 0) {
         return null;
       }
 
       // Format results for context
-      const context = results.slice(0, maxResults).map((result, index) => {
-        const source = result.metadata?.source || 'Unknown source';
-        const page = result.metadata?.page ? ` (Page ${result.metadata.page})` : '';
-        return `[Context ${index + 1} from ${source}${page}]:\n${result.content}`;
-      }).join('\n\n');
+      const context = results
+        .slice(0, maxResults)
+        .map((result, index) => {
+          const source = result.metadata?.source || "Unknown source";
+          const page = result.metadata?.page
+            ? ` (Page ${result.metadata.page})`
+            : "";
+          return `[Context ${index + 1} from ${source}${page}]:\n${result.content}`;
+        })
+        .join("\n\n");
 
       return {
         context,
-        sources: results.slice(0, maxResults).map(r => ({
+        sources: results.slice(0, maxResults).map((r) => ({
           content: r.content,
-          source: r.metadata?.source || 'Unknown',
-          page: r.metadata?.page || null
-        }))
+          source: r.metadata?.source || "Unknown",
+          page: r.metadata?.page || null,
+        })),
       };
     } catch (error) {
-      console.error('Contextual search error:', error);
+      console.error("Contextual search error:", error);
       return null;
     }
   }
@@ -110,14 +126,14 @@ export class RAGService {
       return {
         available: isAvailable,
         baseURL: this.ragBaseURL,
-        timeout: this.timeout
+        timeout: this.timeout,
       };
     } catch (error) {
       return {
         available: false,
         baseURL: this.ragBaseURL,
         timeout: this.timeout,
-        error: error.message
+        error: error.message,
       };
     }
   }
