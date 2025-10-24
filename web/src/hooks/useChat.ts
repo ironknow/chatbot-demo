@@ -30,6 +30,8 @@ export const useChat = (): UseChatReturn => {
     useState<Conversation | null>(null);
   const [apiStatus, setApiStatus] = useState<ApiHealthResponse | null>(null);
   const [flowData, setFlowData] = useState<FlowData | null>(null);
+  const [conversationsLoading, setConversationsLoading] =
+    useState<boolean>(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Flow tracking hook
@@ -56,10 +58,13 @@ export const useChat = (): UseChatReturn => {
   // Load conversations from API
   const loadConversations = useCallback(async () => {
     try {
+      setConversationsLoading(true);
       const response = await chatService.getAllConversations();
       setConversations(response.conversations);
     } catch (err) {
       console.error("Failed to load conversations:", err);
+    } finally {
+      setConversationsLoading(false);
     }
   }, []);
 
@@ -67,13 +72,13 @@ export const useChat = (): UseChatReturn => {
   const loadConversationMessages = useCallback(
     async (conversationId: string) => {
       try {
-        console.log('Loading messages for conversation:', conversationId);
-        setIsLoading(true);
+        console.log("Loading messages for conversation:", conversationId);
+        // Don't set isLoading to true - keep the list visible
         setError(null);
 
         // Load messages for the specified conversation
         const response = await chatService.getConversation(conversationId);
-        console.log('Loaded messages:', response.messages.length);
+        console.log("Loaded messages:", response.messages.length);
         setMessages(response.messages);
 
         // Find and set current conversation
@@ -85,8 +90,6 @@ export const useChat = (): UseChatReturn => {
         setMessages([]);
         setCurrentConversation(null);
         setError(null); // Don't show error for non-existent conversations
-      } finally {
-        setIsLoading(false);
       }
     },
     [conversations],
@@ -117,7 +120,7 @@ export const useChat = (): UseChatReturn => {
   // Handle URL conversation changes
   useEffect(() => {
     if (urlConversationId && urlConversationId !== conversationId) {
-      console.log('Loading conversation from URL:', urlConversationId);
+      console.log("Loading conversation from URL:", urlConversationId);
       setConversationId(urlConversationId);
       // Load the conversation messages
       loadConversationMessages(urlConversationId);
@@ -127,12 +130,19 @@ export const useChat = (): UseChatReturn => {
   // Load conversation when URL changes and conversations are loaded
   useEffect(() => {
     if (urlConversationId && conversations.length > 0) {
-      console.log('Conversations loaded, checking if URL conversation exists:', urlConversationId);
-      const conversationExists = conversations.some(c => c.id === urlConversationId);
+      console.log(
+        "Conversations loaded, checking if URL conversation exists:",
+        urlConversationId,
+      );
+      const conversationExists = conversations.some(
+        (c) => c.id === urlConversationId,
+      );
       if (conversationExists) {
         loadConversationMessages(urlConversationId);
       } else {
-        console.log('Conversation not found in list, loading directly from API');
+        console.log(
+          "Conversation not found in list, loading directly from API",
+        );
         loadConversationMessages(urlConversationId);
       }
     }
@@ -249,8 +259,8 @@ export const useChat = (): UseChatReturn => {
           }
         },
         THEME_CONFIG.TYPING_DELAY_MIN +
-        Math.random() *
-        (THEME_CONFIG.TYPING_DELAY_MAX - THEME_CONFIG.TYPING_DELAY_MIN),
+          Math.random() *
+            (THEME_CONFIG.TYPING_DELAY_MAX - THEME_CONFIG.TYPING_DELAY_MIN),
       );
     } catch (err) {
       console.error("Chat error:", err);
@@ -342,5 +352,7 @@ export const useChat = (): UseChatReturn => {
     flowSteps,
     isFlowProcessing,
     clearFlow,
+    // Conversations loading state
+    conversationsLoading,
   };
 };

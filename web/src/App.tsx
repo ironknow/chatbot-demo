@@ -55,6 +55,8 @@ const Chat: React.FC = () => {
     flowSteps,
     isFlowProcessing,
     clearFlow,
+    // Conversations loading state
+    conversationsLoading,
   } = useChat();
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -78,7 +80,7 @@ const Chat: React.FC = () => {
   }, [navigate, createNewConversation, clearFlow]);
 
   const toggleSidebar = useCallback(() => {
-    console.log('Toggling sidebar from', sidebarOpen, 'to', !sidebarOpen);
+    console.log("Toggling sidebar from", sidebarOpen, "to", !sidebarOpen);
     setSidebarOpen((prev) => !prev);
   }, [sidebarOpen]);
 
@@ -126,7 +128,7 @@ const Chat: React.FC = () => {
           currentConversationId={conversationId || null}
           onSelectConversation={handleSelectConversation}
           onCreateNew={handleNewChat}
-          isLoading={isLoading}
+          isLoading={conversationsLoading}
         />
 
         {/* Main Content */}

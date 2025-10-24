@@ -111,6 +111,8 @@ export interface UseChatReturn {
   flowSteps: FlowStep[];
   isFlowProcessing: boolean;
   clearFlow: () => void;
+  // Conversations loading state
+  conversationsLoading: boolean;
 }
 
 // Service types
