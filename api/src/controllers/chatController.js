@@ -1,4 +1,5 @@
 import groqService from "../services/groqService.js";
+import ragService from "../services/ragService.js";
 import conversationStore from "../config/database.js";
 
 export class ChatController {
@@ -86,17 +87,55 @@ export class ChatController {
     }
   }
 
+  // Test RAG search endpoint
+  async testRAGSearch(req, res) {
+    try {
+      const { query } = req.body;
+
+      if (!query) {
+        return res.status(400).json({ error: 'Query parameter is required' });
+      }
+
+      const ragStatus = await ragService.getStatus();
+      if (!ragStatus.available) {
+        return res.status(503).json({
+          error: 'RAG service is not available',
+          ragStatus
+        });
+      }
+
+      const searchResults = await ragService.searchDocuments(query);
+      const contextualSearch = await ragService.getContextualSearch(query);
+
+      res.json({
+        query,
+        searchResults,
+        contextualSearch,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error('RAG search test error:', error);
+      res.status(500).json({
+        error: 'Failed to test RAG search',
+        message: error.message,
+        timestamp: new Date().toISOString()
+      });
+    }
+  }
+
   // Health check
   async healthCheck(req, res) {
     try {
-      const groqStatus = groqService.getStatus();
+      const groqStatus = await groqService.getStatus();
       const conversationCount = await conversationStore.size();
+      const storageStatus = conversationStore.getStorageStatus();
 
       res.json({
         status: 'healthy',
         timestamp: new Date().toISOString(),
         groq: groqStatus,
-        conversations: conversationCount
+        conversations: conversationCount,
+        storage: storageStatus
       });
     } catch (error) {
       console.error('Health check error:', error);

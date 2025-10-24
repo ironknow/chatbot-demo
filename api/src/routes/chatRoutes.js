@@ -9,4 +9,7 @@ router.get("/", chatController.getAllConversations);
 router.get("/:conversationId", chatController.getConversation);
 router.delete("/:conversationId", chatController.clearConversation);
 
+// RAG testing route
+router.post("/test-rag", chatController.testRAGSearch);
+
 export default router;

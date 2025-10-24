@@ -30,6 +30,14 @@ export const useThemeColors = () => {
             active: useColorModeValue("gray.200", "gray.600"),
         },
 
+        // Accent colors (for status indicators, highlights, etc.)
+        accent: {
+            primary: useColorModeValue("blue.500", "blue.400"),
+            success: useColorModeValue("green.500", "green.400"),
+            error: useColorModeValue("red.500", "red.400"),
+            warning: useColorModeValue("yellow.500", "yellow.400"),
+        },
+
         // Blue theme colors (for active states, buttons, etc.)
         blue: {
             bg: useColorModeValue("blue.50", "blue.900"),

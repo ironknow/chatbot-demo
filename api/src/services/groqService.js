@@ -1,5 +1,6 @@
 import fetch from "node-fetch";
 import { groqConfig, systemPrompt } from "../config/groq.js";
+import ragService from "./ragService.js";
 
 export class GroqService {
   constructor() {
@@ -18,7 +19,7 @@ export class GroqService {
     }));
   }
 
-  // Get AI response from Groq
+  // Get AI response from Groq with RAG enhancement
   async getAIResponse(userMessage, conversationHistory = []) {
     try {
       // Check if API key is configured
@@ -26,9 +27,46 @@ export class GroqService {
         return "🤖 I'm not properly configured yet. Please set up the Groq API key to enable AI responses!";
       }
 
+      // Try to get RAG-enhanced context first
+      let ragContext = null;
+      let ragResponse = null;
+      
+      try {
+        // Check if RAG service is available
+        const ragAvailable = await ragService.isAvailable();
+        
+        if (ragAvailable) {
+          console.log('RAG service available, enhancing response...');
+          
+          // Try to get direct RAG response first
+          ragResponse = await ragService.getRAGResponse(userMessage);
+          
+          // If no direct response, get contextual search results
+          if (!ragResponse) {
+            ragContext = await ragService.getContextualSearch(userMessage);
+          }
+        } else {
+          console.log('RAG service not available, using standard Groq response');
+        }
+      } catch (ragError) {
+        console.warn('RAG integration failed, falling back to standard response:', ragError.message);
+      }
+
+      // If we got a direct RAG response, use it
+      if (ragResponse) {
+        return ragResponse;
+      }
+
+      // Build enhanced system prompt with RAG context
+      let enhancedSystemPrompt = systemPrompt;
+      
+      if (ragContext) {
+        enhancedSystemPrompt += `\n\nIMPORTANT: Use the following context from your knowledge base to provide accurate, detailed answers. If the context doesn't contain relevant information, say so clearly.\n\nCONTEXT:\n${ragContext.context}\n\nPlease provide a helpful response based on this context and the user's question.`;
+      }
+
       // Format the conversation history
       const messages = [
-        { role: 'system', content: systemPrompt },
+        { role: 'system', content: enhancedSystemPrompt },
         ...this.formatConversationForAI(conversationHistory),
         { role: 'user', content: userMessage }
       ];
@@ -81,13 +119,26 @@ export class GroqService {
   }
 
   // Get service status
-  getStatus() {
-    return {
-      configured: this.isConfigured(),
-      model: this.model,
-      maxTokens: this.maxTokens,
-      temperature: this.temperature
-    };
+  async getStatus() {
+    try {
+      const ragStatus = await ragService.getStatus();
+      
+      return {
+        configured: this.isConfigured(),
+        model: this.model,
+        maxTokens: this.maxTokens,
+        temperature: this.temperature,
+        rag: ragStatus
+      };
+    } catch (error) {
+      return {
+        configured: this.isConfigured(),
+        model: this.model,
+        maxTokens: this.maxTokens,
+        temperature: this.temperature,
+        rag: { available: false, error: error.message }
+      };
+    }
   }
 }
 

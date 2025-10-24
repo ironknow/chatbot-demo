@@ -64,6 +64,8 @@ export interface ChatHeaderProps {
   hasError: boolean;
   sidebarOpen: boolean;
   onToggleSidebar: () => void;
+  onToggleFlow?: () => void;
+  showFlow?: boolean;
 }
 
 // Hook types
@@ -104,3 +106,7 @@ export interface ChatError {
   code?: string;
   status?: number;
 }
+
+// Flow types
+export * from "./flow";
+

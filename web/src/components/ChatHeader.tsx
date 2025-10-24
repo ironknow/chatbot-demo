@@ -1,12 +1,12 @@
 import React, { memo, useMemo } from "react";
 import { Box, HStack, Text } from "@chakra-ui/react";
-import { MdRefresh, MdDelete, MdMoreVert, MdMenu } from "react-icons/md";
+import { MdRefresh, MdDelete, MdMoreVert, MdMenu, MdVisibility, MdVisibilityOff } from "react-icons/md";
 import { ChatHeaderProps } from "@/types";
 import { ThemeToggle, IconButton } from "@/components";
 import { useThemeColors } from "@/theme/colors";
 
 const ChatHeader: React.FC<ChatHeaderProps> = memo(
-  ({ apiStatus, onClear, onRetry, hasError, sidebarOpen, onToggleSidebar }) => {
+  ({ apiStatus, onClear, onRetry, hasError, sidebarOpen, onToggleSidebar, onToggleFlow, showFlow }) => {
     const colors = useThemeColors();
 
     const statusColors = useMemo(() => {
@@ -78,6 +78,16 @@ const ChatHeader: React.FC<ChatHeaderProps> = memo(
               tooltip="New chat"
             />
             <ThemeToggle />
+            {onToggleFlow && (
+              <IconButton
+                aria-label={showFlow ? "Hide flow" : "Show flow"}
+                icon={showFlow ? <MdVisibilityOff /> : <MdVisibility />}
+                size="sm"
+                variant="ghost"
+                onClick={onToggleFlow}
+                tooltip={showFlow ? "Hide flow" : "Show flow"}
+              />
+            )}
             <IconButton
               aria-label="More options"
               icon={<MdMoreVert />}

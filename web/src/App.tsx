@@ -1,6 +1,7 @@
 import React, { useRef, useState, useCallback, useMemo } from "react";
 import { Box, Flex } from "@chakra-ui/react";
 import { useChat } from "@/hooks/useChat";
+import { useFlowTracking } from "@/hooks/useFlowTracking";
 import {
   ChatHeader,
   ChatMessage,
@@ -9,12 +10,14 @@ import {
   TypingIndicator,
   Sidebar,
   ErrorBoundary,
+  DataFlowVisualizer,
 } from "@/components";
 import { THEME_CONFIG } from "@/theme/constants";
 import { useThemeColors } from "@/theme/colors";
 
 const App: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [showFlowVisualizer, setShowFlowVisualizer] = useState(false);
   const colors = useThemeColors();
 
   const {
@@ -34,19 +37,82 @@ const App: React.FC = () => {
     apiStatus,
   } = useChat();
 
+  const {
+    currentStep,
+    flowSteps,
+    isProcessing: isFlowProcessing,
+    startFlow,
+    setStep,
+    completeStep,
+    errorStep,
+    completeFlow,
+    clearFlow,
+  } = useFlowTracking();
+
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const handleNewChat = useCallback(() => {
     createNewConversation();
-  }, [createNewConversation]);
+    clearFlow();
+  }, [createNewConversation, clearFlow]);
 
   const handleSelectConversation = useCallback((conversationId: string) => {
     switchConversation(conversationId);
-  }, [switchConversation]);
+    clearFlow();
+  }, [switchConversation, clearFlow]);
 
   const toggleSidebar = useCallback(() => {
     setSidebarOpen((prev) => !prev);
   }, []);
+
+
+
+
+  const handleSendMessage = useCallback(async () => {
+    if (!input.trim() || isTyping || isLoading) return;
+
+    // Start flow tracking
+    startFlow();
+    setStep("user-input", { message: input.trim() });
+
+    // Track input processing
+    setStep("input-processing", {
+      conversationId,
+      messageLength: input.trim().length
+    });
+
+    // Track API call
+    setStep("api-call", {
+      endpoint: "/api/chat",
+      payload: { message: input.trim(), conversationId }
+    });
+
+    try {
+      // Call the original sendMessage function
+      await sendMessage();
+
+      // Track successful completion of all steps
+      setTimeout(() => {
+        completeStep("api-call");
+        setStep("backend-processing", { status: "processing" });
+        completeStep("backend-processing");
+
+        setStep("ai-processing", { status: "processing" });
+        completeStep("ai-processing");
+
+        setStep("response-return", { status: "processing" });
+        completeStep("response-return");
+
+        setStep("ui-update", { status: "processing" });
+        completeStep("ui-update");
+
+        completeFlow();
+      }, 100);
+    } catch (error) {
+      errorStep("api-call", error instanceof Error ? error.message : "Unknown error");
+    }
+  }, [input, isTyping, isLoading, conversationId, sendMessage, startFlow, setStep, completeStep, errorStep, completeFlow]);
 
 
   const mainContentStyles = useMemo(
@@ -77,6 +143,7 @@ const App: React.FC = () => {
     [messages, isTyping],
   );
 
+
   return (
     <ErrorBoundary>
       <Flex height="100vh" bg={colors.background.primary}>
@@ -100,6 +167,8 @@ const App: React.FC = () => {
             hasError={!!error}
             sidebarOpen={sidebarOpen}
             onToggleSidebar={toggleSidebar}
+            onToggleFlow={() => setShowFlowVisualizer(!showFlowVisualizer)}
+            showFlow={showFlowVisualizer}
           />
 
           <Box
@@ -114,6 +183,7 @@ const App: React.FC = () => {
             </Box>
           </Box>
 
+
           <Box
             bg={colors.background.primary}
             borderTop="1px"
@@ -125,7 +195,7 @@ const App: React.FC = () => {
               <ChatInput
                 input={input}
                 setInput={setInput}
-                onSend={sendMessage}
+                onSend={handleSendMessage}
                 disabled={isTyping}
                 isTyping={isTyping}
                 isLoading={isLoading}
@@ -133,6 +203,16 @@ const App: React.FC = () => {
             </Box>
           </Box>
         </Flex>
+
+
+        {/* Data Flow Visualizer */}
+        <DataFlowVisualizer
+          isVisible={showFlowVisualizer}
+          onToggle={() => setShowFlowVisualizer(!showFlowVisualizer)}
+          currentStep={currentStep || undefined}
+          flowData={flowSteps}
+          isProcessing={isFlowProcessing}
+        />
       </Flex>
     </ErrorBoundary>
   );
