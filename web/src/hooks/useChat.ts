@@ -6,11 +6,16 @@ import { THEME_CONFIG } from "@/theme/constants";
 import { useFlowTracking } from "./useFlowTracking";
 import { useChatContext } from "@/contexts";
 
-export const useChat = (onConversationComplete?: (conversationId: string) => void): UseChatReturn => {
+export const useChat = (
+  onConversationComplete?: (conversationId: string) => void,
+): UseChatReturn => {
   const { conversationId: urlConversationId } = useParams<{
     conversationId: string;
   }>();
-  console.log("🎯 useChat: Hook initialized with urlConversationId:", urlConversationId);
+  console.log(
+    "🎯 useChat: Hook initialized with urlConversationId:",
+    urlConversationId,
+  );
   const {
     conversations,
     conversationsLoading,
@@ -60,7 +65,10 @@ export const useChat = (onConversationComplete?: (conversationId: string) => voi
       // Prevent multiple API calls for the same conversation
       const loadingKey = `loading-${conversationId}`;
       if (initializedRef.current === loadingKey) {
-        console.log("⚠️ useChat: Already loading conversation, skipping:", conversationId);
+        console.log(
+          "⚠️ useChat: Already loading conversation, skipping:",
+          conversationId,
+        );
         return;
       }
 
@@ -98,7 +106,10 @@ export const useChat = (onConversationComplete?: (conversationId: string) => voi
     // Prevent multiple initializations for the same conversation
     const effectKey = `url-${urlConversationId}`;
     if (initializedRef.current === effectKey) {
-      console.log("⚠️ useChat: Already processed URL change, skipping:", urlConversationId);
+      console.log(
+        "⚠️ useChat: Already processed URL change, skipping:",
+        urlConversationId,
+      );
       return;
     }
 
@@ -118,7 +129,10 @@ export const useChat = (onConversationComplete?: (conversationId: string) => voi
     // Prevent multiple initializations for the same conversation
     const effectKey = `${urlConversationId}-${conversations.length}`;
     if (initializedRef.current === effectKey) {
-      console.log("⚠️ useChat: Already loaded conversation, skipping:", urlConversationId);
+      console.log(
+        "⚠️ useChat: Already loaded conversation, skipping:",
+        urlConversationId,
+      );
       return;
     }
 
@@ -134,9 +148,7 @@ export const useChat = (onConversationComplete?: (conversationId: string) => voi
     if (conversationExists) {
       loadConversationMessages(urlConversationId);
     } else {
-      console.log(
-        "Conversation not found in list, loading directly from API",
-      );
+      console.log("Conversation not found in list, loading directly from API");
       loadConversationMessages(urlConversationId);
     }
   }, [urlConversationId, conversations, loadConversationMessages]);
@@ -218,7 +230,9 @@ export const useChat = (onConversationComplete?: (conversationId: string) => voi
         });
 
         if (!response.ok) {
-          throw new Error(`Failed to create conversation: ${response.statusText}`);
+          throw new Error(
+            `Failed to create conversation: ${response.statusText}`,
+          );
         }
 
         const data = await response.json();
@@ -231,10 +245,10 @@ export const useChat = (onConversationComplete?: (conversationId: string) => voi
         // Add new conversation to the list with animation
         addConversation({
           id: data.conversationId,
-          title: data.title || 'New Conversation',
+          title: data.title || "New Conversation",
           createdAt: data.timestamp,
           updatedAt: data.timestamp,
-          _count: { messages: 0 }
+          _count: { messages: 0 },
         });
       } catch (err) {
         console.error("Error creating conversation:", err);
@@ -263,7 +277,10 @@ export const useChat = (onConversationComplete?: (conversationId: string) => voi
     completeStep("user-input");
     setStep("input-processing", { message: input.trim() });
     completeStep("input-processing");
-    setStep("api-call", { message: input.trim(), conversationId: currentConversationId });
+    setStep("api-call", {
+      message: input.trim(),
+      conversationId: currentConversationId,
+    });
 
     try {
       const response = await chatService.sendMessage(
@@ -309,16 +326,17 @@ export const useChat = (onConversationComplete?: (conversationId: string) => voi
 
           // Call the callback if this was a new conversation
           if (isNewConversationRef.current && onConversationComplete) {
-            console.log("🚀 useChat: Calling onConversationComplete for:", currentConversationId);
+            console.log(
+              "🚀 useChat: Calling onConversationComplete for:",
+              currentConversationId,
+            );
             onConversationComplete(currentConversationId);
             isNewConversationRef.current = false; // Reset the flag
           }
-
-
         },
         THEME_CONFIG.TYPING_DELAY_MIN +
-        Math.random() *
-        (THEME_CONFIG.TYPING_DELAY_MAX - THEME_CONFIG.TYPING_DELAY_MIN),
+          Math.random() *
+            (THEME_CONFIG.TYPING_DELAY_MAX - THEME_CONFIG.TYPING_DELAY_MIN),
       );
     } catch (err) {
       console.error("Chat error:", err);
@@ -367,7 +385,9 @@ export const useChat = (onConversationComplete?: (conversationId: string) => voi
       setError(null);
       // Refresh conversations list
       try {
-        console.log("🔄 useChat: Calling refreshConversations from clearConversation");
+        console.log(
+          "🔄 useChat: Calling refreshConversations from clearConversation",
+        );
         await refreshConversations();
       } catch (err) {
         console.error("Failed to refresh conversations:", err);

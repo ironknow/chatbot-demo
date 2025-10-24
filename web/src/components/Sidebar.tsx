@@ -37,7 +37,7 @@ const Sidebar: React.FC<SidebarProps> = memo(
 
     // Add CSS keyframes for animation
     React.useEffect(() => {
-      const style = document.createElement('style');
+      const style = document.createElement("style");
       style.textContent = `
         @keyframes fadeInUp {
           from {
@@ -243,16 +243,14 @@ const Sidebar: React.FC<SidebarProps> = memo(
                         </Text>
                       )}
 
-                      {conversation._count && conversation._count.messages > 0 && (
-                        <HStack justify="space-between" align="center">
-                          <Text
-                            fontSize="xs"
-                            color={colors.text.muted}
-                          >
-                            {conversation._count.messages} messages
-                          </Text>
-                        </HStack>
-                      )}
+                      {conversation._count &&
+                        conversation._count.messages > 0 && (
+                          <HStack justify="space-between" align="center">
+                            <Text fontSize="xs" color={colors.text.muted}>
+                              {conversation._count.messages} messages
+                            </Text>
+                          </HStack>
+                        )}
                     </VStack>
                   </Button>
                 ))}

@@ -39,7 +39,7 @@ const ChatHeader: React.FC<ChatHeaderProps> = memo(
               fontWeight="semibold"
               color={colors.text.primary}
             >
-              Chatty
+              Chat
             </Text>
             {apiStatus && statusColors && (
               <Box

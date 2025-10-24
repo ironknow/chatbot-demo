@@ -89,80 +89,76 @@ const Input: React.FC<CustomInputProps> = ({
   );
 };
 
-const Textarea = forwardRef<HTMLTextAreaElement, CustomTextareaProps>(({
-  leftIcon,
-  rightIcon,
-  onRightIconClick,
-  disabled,
-  ...props
-}, ref) => {
-  const bgColor = useColorModeValue("white", "gray.700");
-  const borderColor = useColorModeValue("gray.300", "gray.600");
-  const focusBorderColor = useColorModeValue("blue.500", "blue.400");
-  const placeholderColor = useColorModeValue("gray.500", "gray.400");
+const Textarea = forwardRef<HTMLTextAreaElement, CustomTextareaProps>(
+  ({ leftIcon, rightIcon, onRightIconClick, disabled, ...props }, ref) => {
+    const bgColor = useColorModeValue("white", "gray.700");
+    const borderColor = useColorModeValue("gray.300", "gray.600");
+    const focusBorderColor = useColorModeValue("blue.500", "blue.400");
+    const placeholderColor = useColorModeValue("gray.500", "gray.400");
 
-  if (leftIcon || rightIcon) {
+    if (leftIcon || rightIcon) {
+      return (
+        <HStack
+          bg={bgColor}
+          borderRadius="lg"
+          border="1px solid"
+          borderColor={borderColor}
+          _focusWithin={{
+            borderColor: focusBorderColor,
+            boxShadow: `0 0 0 1px ${focusBorderColor}`,
+          }}
+          px={3}
+          py={2}
+          spacing={2}
+          align="flex-start"
+        >
+          {leftIcon}
+          <ChakraTextarea
+            ref={ref}
+            border="none"
+            bg="transparent"
+            resize="none"
+            disabled={disabled}
+            _focus={{
+              boxShadow: "none",
+            }}
+            _placeholder={{
+              color: placeholderColor,
+            }}
+            {...props}
+          />
+          {rightIcon && (
+            <IconButton
+              aria-label="Action"
+              icon={rightIcon as React.ReactElement}
+              size="sm"
+              variant="ghost"
+              onClick={onRightIconClick}
+              alignSelf="flex-end"
+            />
+          )}
+        </HStack>
+      );
+    }
+
     return (
-      <HStack
+      <ChakraTextarea
+        ref={ref}
         bg={bgColor}
-        borderRadius="lg"
-        border="1px solid"
         borderColor={borderColor}
-        _focusWithin={{
+        disabled={disabled}
+        _focus={{
           borderColor: focusBorderColor,
           boxShadow: `0 0 0 1px ${focusBorderColor}`,
         }}
-        px={3}
-        py={2}
-        spacing={2}
-        align="flex-start"
-      >
-        {leftIcon}
-        <ChakraTextarea
-          ref={ref}
-          border="none"
-          bg="transparent"
-          resize="none"
-          disabled={disabled}
-          _focus={{
-            boxShadow: "none",
-          }}
-          _placeholder={{
-            color: placeholderColor,
-          }}
-          {...props}
-        />
-        {rightIcon && (
-          <IconButton
-            aria-label="Action"
-            icon={rightIcon as React.ReactElement}
-            size="sm"
-            variant="ghost"
-            onClick={onRightIconClick}
-            alignSelf="flex-end"
-          />
-        )}
-      </HStack>
+        _placeholder={{
+          color: placeholderColor,
+        }}
+        {...props}
+      />
     );
-  }
-
-  return (
-    <ChakraTextarea
-      ref={ref}
-      bg={bgColor}
-      borderColor={borderColor}
-      disabled={disabled}
-      _focus={{
-        borderColor: focusBorderColor,
-        boxShadow: `0 0 0 1px ${focusBorderColor}`,
-      }}
-      _placeholder={{
-        color: placeholderColor,
-      }}
-      {...props}
-    />
-  );
-});
+  },
+);
 
 Textarea.displayName = "Textarea";
 

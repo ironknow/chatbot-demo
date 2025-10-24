@@ -13,20 +13,7 @@ const WelcomeMessage: React.FC = memo(() => {
           <Text fontSize="4xl" fontWeight="bold" color={colors.text.primary}>
             How can I help you today?
           </Text>
-          <Text
-            fontSize="lg"
-            color={colors.text.secondary}
-            maxW="2xl"
-          >
-            I'm Chatty, your AI assistant. I can help you with questions,
-            creative tasks, analysis, coding, and much more.
-          </Text>
         </VStack>
-
-        {/* Footer Text */}
-        <Text fontSize="sm" color={colors.text.tertiary} mt={8}>
-          Chatty can make mistakes. Consider checking important information.
-        </Text>
       </VStack>
     </Box>
   );

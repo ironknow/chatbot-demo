@@ -1,5 +1,11 @@
 import axios, { AxiosResponse } from "axios";
-import { ChatResponse, ApiHealthResponse, Message, ChatService, ConversationsResponse } from "@/types";
+import {
+  ChatResponse,
+  ApiHealthResponse,
+  Message,
+  ChatService,
+  ConversationsResponse,
+} from "@/types";
 
 class ChatServiceImpl implements ChatService {
   private baseURL = "http://localhost:5000/api";

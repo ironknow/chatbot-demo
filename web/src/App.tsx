@@ -1,4 +1,4 @@
-import React, { useRef, useState, useCallback, useMemo, useEffect } from "react";
+import React, { useRef, useState, useCallback, useMemo } from "react";
 import { Box, Flex } from "@chakra-ui/react";
 import {
   BrowserRouter as Router,
@@ -26,7 +26,6 @@ import { ChatProvider, useChatContext } from "@/contexts";
 // Chat component that handles individual conversations
 const Chat: React.FC = () => {
   const { conversationId } = useParams<{ conversationId: string }>();
-  const navigate = useNavigate();
   const [showFlowVisualizer, setShowFlowVisualizer] = useState(false);
   const colors = useThemeColors();
 
@@ -42,14 +41,12 @@ const Chat: React.FC = () => {
     sendMessage,
     clearConversation,
     retryLastMessage,
-    switchConversation,
     apiStatus,
     // Flow tracking data
     flowData,
     currentStep,
     flowSteps,
     isFlowProcessing,
-    clearFlow,
   } = useChat();
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -58,7 +55,6 @@ const Chat: React.FC = () => {
     if (!input.trim() || isTyping || isLoading) return;
     await sendMessage();
   }, [input, isTyping, isLoading, sendMessage]);
-
 
   const messageList = useMemo(
     () => (
@@ -141,11 +137,7 @@ const ChatLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { conversationId } = useParams<{ conversationId: string }>();
   const colors = useThemeColors();
 
-  const {
-    conversations,
-    conversationsLoading,
-    apiStatus,
-  } = useChatContext();
+  const { conversations, conversationsLoading } = useChatContext();
 
   const mainContentStyles = {
     flex: "1",
@@ -165,14 +157,14 @@ const ChatLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         currentConversationId={conversationId || null}
         isOpen={sidebarOpen}
         onToggle={() => setSidebarOpen(!sidebarOpen)}
-        onSelectConversation={(conversationId) => navigate(`/chat/${conversationId}`)}
+        onSelectConversation={(conversationId) =>
+          navigate(`/chat/${conversationId}`)
+        }
         onCreateNew={() => navigate("/")}
       />
 
       {/* Main Content */}
-      <Flex {...mainContentStyles}>
-        {children}
-      </Flex>
+      <Flex {...mainContentStyles}>{children}</Flex>
     </Flex>
   );
 };
@@ -185,10 +177,16 @@ const HomePage: React.FC = () => {
 
   console.log("🏠 HomePage component mounted");
 
-  const handleConversationComplete = useCallback((conversationId: string) => {
-    console.log("🚀 HomePage: Conversation completed, navigating to:", conversationId);
-    navigate(`/chat/${conversationId}`);
-  }, [navigate]);
+  const handleConversationComplete = useCallback(
+    (conversationId: string) => {
+      console.log(
+        "🚀 HomePage: Conversation completed, navigating to:",
+        conversationId,
+      );
+      navigate(`/chat/${conversationId}`);
+    },
+    [navigate],
+  );
 
   const {
     messages,
@@ -206,11 +204,9 @@ const HomePage: React.FC = () => {
     currentStep,
     flowSteps,
     isFlowProcessing,
-    clearFlow,
   } = useChat(handleConversationComplete);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
-
 
   const handleSendMessage = useCallback(async () => {
     if (!input.trim() || isTyping || isLoading) return;
@@ -297,8 +293,22 @@ const App: React.FC = () => {
     <ChatProvider>
       <Router>
         <Routes>
-          <Route path="/" element={<ChatLayout><HomePage /></ChatLayout>} />
-          <Route path="/chat/:conversationId" element={<ChatLayout><Chat /></ChatLayout>} />
+          <Route
+            path="/"
+            element={
+              <ChatLayout>
+                <HomePage />
+              </ChatLayout>
+            }
+          />
+          <Route
+            path="/chat/:conversationId"
+            element={
+              <ChatLayout>
+                <Chat />
+              </ChatLayout>
+            }
+          />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Router>

@@ -1,14 +1,12 @@
 import React, { memo, useCallback, useRef, useEffect } from "react";
-import { Box, Text } from "@chakra-ui/react";
+import { Box } from "@chakra-ui/react";
 import { MdSend, MdAttachFile } from "react-icons/md";
 import { ChatInputProps } from "@/types";
 import { Textarea } from "@/components";
-import { useThemeColors } from "@/theme/colors";
 
 const ChatInput: React.FC<ChatInputProps> = memo(
   ({ input, setInput, onSend, disabled, isTyping, isLoading }) => {
     const textareaRef = useRef<HTMLTextAreaElement>(null);
-    const colors = useThemeColors();
 
     const handleKeyDown = useCallback(
       (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -47,15 +45,6 @@ const ChatInput: React.FC<ChatInputProps> = memo(
           rightIcon={<MdSend />}
           onRightIconClick={onSend}
         />
-
-        <Text
-          fontSize="xs"
-          color={colors.text.tertiary}
-          mt={2}
-          textAlign="center"
-        >
-          Chatty can make mistakes. Consider checking important information.
-        </Text>
       </Box>
     );
   },
