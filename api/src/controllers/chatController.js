@@ -3,6 +3,73 @@ import ragService from "../services/ragService.js";
 import conversationStore from "../config/database.js";
 
 export class ChatController {
+  // Generate a hashed conversation ID
+  generateConversationId() {
+    const timestamp = Date.now().toString();
+    const random = Math.random().toString();
+    const combined = timestamp + random;
+    const hashed = Buffer.from(combined)
+      .toString("base64")
+      .replace(/[^a-zA-Z0-9]/g, "")
+      .substring(0, 16);
+    return `conv_${hashed}`;
+  }
+
+  // Create a new conversation
+  async createConversation(req, res) {
+    try {
+      const conversationId = this.generateConversationId();
+
+      // Generate a meaningful title using Groq
+      const title = await this.generateConversationTitle();
+
+      // Initialize empty conversation with the generated title
+      await conversationStore.set(conversationId, [], title);
+
+      res.json({
+        conversationId,
+        title,
+        timestamp: new Date().toISOString(),
+        message: "Conversation created successfully",
+      });
+    } catch (error) {
+      console.error("Error creating conversation:", error);
+      res.status(500).json({ error: "Failed to create conversation" });
+    }
+  }
+
+  // Generate a conversation title using Groq
+  async generateConversationTitle() {
+    try {
+      const titlePrompts = [
+        "Generate a creative, engaging title for a new conversation. Keep it short (2-4 words) and welcoming. Examples: 'Let's Chat', 'New Adventure', 'Fresh Start', 'Hello There'. Just return the title, nothing else.",
+        "Create a friendly conversation title. Make it inviting and concise (2-4 words). Examples: 'Chat Time', 'New Journey', 'Let's Talk', 'Hello Friend'. Only return the title.",
+        "Generate a warm, welcoming title for starting a new chat. Keep it brief (2-4 words) and positive. Examples: 'New Chat', 'Let's Connect', 'Hello World', 'Fresh Chat'. Just the title please."
+      ];
+
+      const randomPrompt = titlePrompts[Math.floor(Math.random() * titlePrompts.length)];
+
+      const response = await groqService.getAIResponse(randomPrompt, "");
+      return response.reply.trim().replace(/['"]/g, ''); // Remove quotes if any
+    } catch (error) {
+      console.warn("Failed to generate title with Groq, using fallback:", error.message);
+      // Fallback titles
+      const fallbackTitles = [
+        "Let's Chat",
+        "New Adventure",
+        "Fresh Start",
+        "Hello There",
+        "Chat Time",
+        "New Journey",
+        "Let's Talk",
+        "Hello Friend",
+        "New Chat",
+        "Let's Connect"
+      ];
+      return fallbackTitles[Math.floor(Math.random() * fallbackTitles.length)];
+    }
+  }
+
   // Main chat endpoint
   async sendMessage(req, res) {
     const { message, conversationId } = req.body;

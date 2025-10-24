@@ -1,38 +1,37 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams } from "react-router-dom";
-import {
-  Message,
-  UseChatReturn,
-  ApiHealthResponse,
-  Conversation,
-  FlowData,
-} from "@/types";
+import { Message, UseChatReturn, Conversation, FlowData } from "@/types";
 import { chatService } from "@/services/chatService";
 import { THEME_CONFIG } from "@/theme/constants";
 import { useFlowTracking } from "./useFlowTracking";
+import { useChatContext } from "@/contexts";
 
-export const useChat = (): UseChatReturn => {
+export const useChat = (onConversationComplete?: (conversationId: string) => void): UseChatReturn => {
   const { conversationId: urlConversationId } = useParams<{
     conversationId: string;
   }>();
+  console.log("🎯 useChat: Hook initialized with urlConversationId:", urlConversationId);
+  const {
+    conversations,
+    conversationsLoading,
+    apiStatus,
+    refreshConversations,
+    addConversation,
+  } = useChatContext();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState<string>("");
   const [isTyping, setIsTyping] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [conversationId, setConversationId] = useState<string>(
-    () =>
-      urlConversationId ||
-      `conv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+    () => urlConversationId || "",
   );
-  const [conversations, setConversations] = useState<Conversation[]>([]);
   const [currentConversation, setCurrentConversation] =
     useState<Conversation | null>(null);
-  const [apiStatus, setApiStatus] = useState<ApiHealthResponse | null>(null);
   const [flowData, setFlowData] = useState<FlowData | null>(null);
-  const [conversationsLoading, setConversationsLoading] =
-    useState<boolean>(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const isNewConversationRef = useRef(false);
+  const initializedRef = useRef<string | false>(false);
 
   // Flow tracking hook
   const {
@@ -55,24 +54,19 @@ export const useChat = (): UseChatReturn => {
     scrollToBottom();
   }, [messages, scrollToBottom]);
 
-  // Load conversations from API
-  const loadConversations = useCallback(async () => {
-    try {
-      setConversationsLoading(true);
-      const response = await chatService.getAllConversations();
-      setConversations(response.conversations);
-    } catch (err) {
-      console.error("Failed to load conversations:", err);
-    } finally {
-      setConversationsLoading(false);
-    }
-  }, []);
-
   // Load messages for a specific conversation
   const loadConversationMessages = useCallback(
     async (conversationId: string) => {
+      // Prevent multiple API calls for the same conversation
+      const loadingKey = `loading-${conversationId}`;
+      if (initializedRef.current === loadingKey) {
+        console.log("⚠️ useChat: Already loading conversation, skipping:", conversationId);
+        return;
+      }
+
       try {
         console.log("Loading messages for conversation:", conversationId);
+        initializedRef.current = loadingKey;
         // Don't set isLoading to true - keep the list visible
         setError(null);
 
@@ -95,56 +89,55 @@ export const useChat = (): UseChatReturn => {
     [conversations],
   );
 
-  // Load conversations and check API status on component mount
-  useEffect(() => {
-    const initializeChat = async () => {
-      try {
-        // Check API status
-        const status = await chatService.checkHealth();
-        setApiStatus(status);
-
-        // Load conversations
-        await loadConversations();
-      } catch (err) {
-        setApiStatus({
-          status: "error",
-          timestamp: new Date().toISOString(),
-          message: "API not reachable",
-        });
-      }
-    };
-
-    initializeChat();
-  }, [loadConversations]);
-
   // Handle URL conversation changes
   useEffect(() => {
-    if (urlConversationId && urlConversationId !== conversationId) {
-      console.log("Loading conversation from URL:", urlConversationId);
-      setConversationId(urlConversationId);
-      // Load the conversation messages
-      loadConversationMessages(urlConversationId);
+    if (!urlConversationId || urlConversationId === conversationId) {
+      return;
     }
+
+    // Prevent multiple initializations for the same conversation
+    const effectKey = `url-${urlConversationId}`;
+    if (initializedRef.current === effectKey) {
+      console.log("⚠️ useChat: Already processed URL change, skipping:", urlConversationId);
+      return;
+    }
+
+    console.log("Loading conversation from URL:", urlConversationId);
+    initializedRef.current = effectKey;
+    setConversationId(urlConversationId);
+    // Load the conversation messages
+    loadConversationMessages(urlConversationId);
   }, [urlConversationId, conversationId, loadConversationMessages]);
 
   // Load conversation when URL changes and conversations are loaded
   useEffect(() => {
-    if (urlConversationId && conversations.length > 0) {
+    if (!urlConversationId || conversations.length === 0) {
+      return;
+    }
+
+    // Prevent multiple initializations for the same conversation
+    const effectKey = `${urlConversationId}-${conversations.length}`;
+    if (initializedRef.current === effectKey) {
+      console.log("⚠️ useChat: Already loaded conversation, skipping:", urlConversationId);
+      return;
+    }
+
+    console.log(
+      "Conversations loaded, checking if URL conversation exists:",
+      urlConversationId,
+    );
+    initializedRef.current = effectKey;
+
+    const conversationExists = conversations.some(
+      (c) => c.id === urlConversationId,
+    );
+    if (conversationExists) {
+      loadConversationMessages(urlConversationId);
+    } else {
       console.log(
-        "Conversations loaded, checking if URL conversation exists:",
-        urlConversationId,
+        "Conversation not found in list, loading directly from API",
       );
-      const conversationExists = conversations.some(
-        (c) => c.id === urlConversationId,
-      );
-      if (conversationExists) {
-        loadConversationMessages(urlConversationId);
-      } else {
-        console.log(
-          "Conversation not found in list, loading directly from API",
-        );
-        loadConversationMessages(urlConversationId);
-      }
+      loadConversationMessages(urlConversationId);
     }
   }, [urlConversationId, conversations, loadConversationMessages]);
 
@@ -176,16 +169,81 @@ export const useChat = (): UseChatReturn => {
   );
 
   // Create a new conversation
-  const createNewConversation = useCallback(() => {
-    const newConversationId = `conv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    setConversationId(newConversationId);
-    setMessages([]);
-    setCurrentConversation(null);
-    setError(null);
-  }, []);
+  const createNewConversation = useCallback(async () => {
+    try {
+      const response = await fetch(`http://localhost:5000/api/chat/create`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(
+          `Failed to create conversation: ${response.statusText}`,
+        );
+      }
+
+      const data = await response.json();
+      const newConversationId = data.conversationId;
+
+      setConversationId(newConversationId);
+      setMessages([]);
+      setCurrentConversation(null);
+      setError(null);
+
+      // Refresh conversations list to include the new conversation
+      await refreshConversations();
+
+      return newConversationId;
+    } catch (err) {
+      console.error("Error creating conversation:", err);
+      setError("Failed to create new conversation");
+      return null;
+    }
+  }, [refreshConversations]);
 
   const sendMessage = useCallback(async () => {
     if (!input.trim() || isTyping || isLoading) return;
+
+    // If no conversation ID, create a new conversation first
+    let currentConversationId = conversationId;
+    if (!currentConversationId) {
+      try {
+        const response = await fetch(`http://localhost:5000/api/chat/create`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error(`Failed to create conversation: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        currentConversationId = data.conversationId;
+        setConversationId(currentConversationId);
+
+        // Mark that this is a new conversation
+        isNewConversationRef.current = true;
+
+        // Add new conversation to the list with animation
+        addConversation({
+          id: data.conversationId,
+          title: data.title || 'New Conversation',
+          createdAt: data.timestamp,
+          updatedAt: data.timestamp,
+          _count: { messages: 0 }
+        });
+      } catch (err) {
+        console.error("Error creating conversation:", err);
+        setError("Failed to create new conversation");
+        setIsLoading(false);
+        setIsTyping(false);
+        return;
+      }
+    }
 
     const userMsg: Message = {
       sender: "user",
@@ -205,12 +263,12 @@ export const useChat = (): UseChatReturn => {
     completeStep("user-input");
     setStep("input-processing", { message: input.trim() });
     completeStep("input-processing");
-    setStep("api-call", { message: input.trim(), conversationId });
+    setStep("api-call", { message: input.trim(), conversationId: currentConversationId });
 
     try {
       const response = await chatService.sendMessage(
         input.trim(),
-        conversationId,
+        currentConversationId,
       );
 
       // Complete API call step
@@ -249,18 +307,18 @@ export const useChat = (): UseChatReturn => {
           completeStep("ui-update");
           completeFlow();
 
-          // Refresh conversations list to show updated conversation
-          try {
-            const conversationsResponse =
-              await chatService.getAllConversations();
-            setConversations(conversationsResponse.conversations);
-          } catch (err) {
-            console.error("Failed to refresh conversations:", err);
+          // Call the callback if this was a new conversation
+          if (isNewConversationRef.current && onConversationComplete) {
+            console.log("🚀 useChat: Calling onConversationComplete for:", currentConversationId);
+            onConversationComplete(currentConversationId);
+            isNewConversationRef.current = false; // Reset the flag
           }
+
+
         },
         THEME_CONFIG.TYPING_DELAY_MIN +
-          Math.random() *
-            (THEME_CONFIG.TYPING_DELAY_MAX - THEME_CONFIG.TYPING_DELAY_MIN),
+        Math.random() *
+        (THEME_CONFIG.TYPING_DELAY_MAX - THEME_CONFIG.TYPING_DELAY_MIN),
       );
     } catch (err) {
       console.error("Chat error:", err);
@@ -297,17 +355,20 @@ export const useChat = (): UseChatReturn => {
     completeStep,
     errorStep,
     completeFlow,
+    addConversation,
+    onConversationComplete,
   ]);
 
   const clearConversation = useCallback(async () => {
+    console.log("🗑️ useChat: clearConversation called for:", conversationId);
     try {
       await chatService.clearConversation(conversationId);
       setMessages([]);
       setError(null);
       // Refresh conversations list
       try {
-        const conversationsResponse = await chatService.getAllConversations();
-        setConversations(conversationsResponse.conversations);
+        console.log("🔄 useChat: Calling refreshConversations from clearConversation");
+        await refreshConversations();
       } catch (err) {
         console.error("Failed to refresh conversations:", err);
       }
@@ -315,7 +376,7 @@ export const useChat = (): UseChatReturn => {
       console.error("Failed to clear conversation:", err);
       setError("Failed to clear conversation. Please try again.");
     }
-  }, [conversationId]);
+  }, [conversationId, refreshConversations]);
 
   const retryLastMessage = useCallback(() => {
     if (messages.length > 0 && error) {
@@ -328,6 +389,10 @@ export const useChat = (): UseChatReturn => {
       }
     }
   }, [messages, error]);
+
+  const loadConversations = useCallback(async () => {
+    await refreshConversations();
+  }, [refreshConversations]);
 
   return {
     messages,

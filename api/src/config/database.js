@@ -65,7 +65,7 @@ class ConversationStore {
   }
 
   // Create or update conversation with messages
-  async set(conversationId, messages) {
+  async set(conversationId, messages, title = null) {
     try {
       // Keep only last 20 messages to prevent bloat
       const recentMessages = messages.slice(-20);
@@ -92,7 +92,7 @@ class ConversationStore {
           },
           create: {
             id: conversationId,
-            title: recentMessages[0]?.text?.substring(0, 50) || 'New Conversation',
+            title: title || recentMessages[0]?.text?.substring(0, 50) || 'New Conversation',
             messages: {
               create: recentMessages.map(msg => ({
                 sender: msg.sender,

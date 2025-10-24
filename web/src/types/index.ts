@@ -81,8 +81,6 @@ export interface ChatHeaderProps {
   onClear: () => void;
   onRetry?: () => void;
   hasError: boolean;
-  sidebarOpen: boolean;
-  onToggleSidebar: () => void;
   onToggleFlow?: () => void;
   showFlow?: boolean;
 }
