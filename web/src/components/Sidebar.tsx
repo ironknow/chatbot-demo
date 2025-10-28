@@ -12,6 +12,7 @@ import {
 import { MdAdd, MdChat, MdMenu, MdClose } from "react-icons/md";
 import { Conversation } from "@/types";
 import { useThemeColors } from "@/theme/colors";
+import ConversationMenu from "./ConversationMenu";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -20,6 +21,7 @@ interface SidebarProps {
   currentConversationId: string | null;
   onSelectConversation: (conversationId: string) => void;
   onCreateNew: () => void;
+  onDeleteConversation: (conversationId: string) => void;
   isLoading?: boolean;
 }
 
@@ -31,9 +33,11 @@ const Sidebar: React.FC<SidebarProps> = memo(
     currentConversationId,
     onSelectConversation,
     onCreateNew,
+    onDeleteConversation,
     isLoading,
   }) => {
     const colors = useThemeColors();
+    const [openMenuId, setOpenMenuId] = React.useState<string | null>(null);
 
     // Add CSS keyframes for animation
     React.useEffect(() => {
@@ -51,7 +55,9 @@ const Sidebar: React.FC<SidebarProps> = memo(
         }
       `;
       document.head.appendChild(style);
-      return () => document.head.removeChild(style);
+      return () => {
+        document.head.removeChild(style);
+      };
     }, []);
     const formatLastMessage = (conversation: Conversation): string => {
       if (conversation.messages && conversation.messages.length > 0) {
@@ -111,7 +117,7 @@ const Sidebar: React.FC<SidebarProps> = memo(
 
         {/* Conversation List - Only show when expanded */}
         {isOpen && (
-          <Box flex="1" overflowY="auto">
+          <Box flex="1" overflowY="auto" overflowX="visible">
             {isLoading ? (
               <Center p={4}>
                 <VStack spacing={2}>
@@ -155,6 +161,7 @@ const Sidebar: React.FC<SidebarProps> = memo(
                 p={2}
                 align="stretch"
                 transition="all 0.3s ease"
+                overflow="visible"
               >
                 {/* New Chat Button */}
                 <Button
@@ -191,68 +198,82 @@ const Sidebar: React.FC<SidebarProps> = memo(
                   </Text>
                 </Button>
                 {conversations.map((conversation, index) => (
-                  <Button
+                  <Box
                     key={conversation.id}
-                    onClick={() => onSelectConversation(conversation.id)}
-                    variant="ghost"
-                    justifyContent="flex-start"
-                    h="auto"
-                    p={3}
-                    borderRadius="md"
+                    position="relative"
                     opacity={0}
                     transform="translateY(-10px)"
                     animation={`fadeInUp 0.3s ease ${index * 0.1}s forwards`}
-                    bg={
-                      currentConversationId === conversation.id
-                        ? colors.interactive.active
-                        : "transparent"
-                    }
-                    border="1px solid transparent"
-                    _hover={{
-                      bg:
+                    role="group"
+                    overflow="visible"
+                    zIndex={openMenuId === conversation.id ? 20 : 1}
+                  >
+                    <Button
+                      onClick={() => onSelectConversation(conversation.id)}
+                      variant="ghost"
+                      justifyContent="space-between"
+                      h="auto"
+                      p={3}
+                      borderRadius="md"
+                      bg={
                         currentConversationId === conversation.id
                           ? colors.interactive.active
-                          : colors.interactive.hover,
-                      transform: "none",
-                    }}
-                    _active={{
-                      transform: "none",
-                    }}
-                    transition="background-color 0.2s"
-                    position="relative"
-                  >
-                    <VStack align="stretch" spacing={2} w="full">
-                      <Text
-                        fontSize="sm"
-                        fontWeight="medium"
-                        color={colors.text.primary}
-                        noOfLines={1}
-                        textAlign="left"
-                      >
-                        {conversation.title || "Untitled Conversation"}
-                      </Text>
-
-                      {formatLastMessage(conversation) && (
+                          : "transparent"
+                      }
+                      border="1px solid transparent"
+                      _hover={{
+                        bg:
+                          currentConversationId === conversation.id
+                            ? colors.interactive.active
+                            : colors.interactive.hover,
+                        transform: "none",
+                      }}
+                      _active={{
+                        transform: "none",
+                      }}
+                      transition="background-color 0.2s"
+                      w="full"
+                    >
+                      <VStack align="stretch" spacing={2} w="full" flex="1">
                         <Text
-                          fontSize="xs"
-                          color={colors.text.secondary}
+                          fontSize="sm"
+                          fontWeight="medium"
+                          color={colors.text.primary}
                           noOfLines={1}
                           textAlign="left"
                         >
-                          {formatLastMessage(conversation)}
+                          {conversation.title || "Untitled Conversation"}
                         </Text>
-                      )}
 
-                      {conversation._count &&
-                        conversation._count.messages > 0 && (
-                          <HStack justify="space-between" align="center">
-                            <Text fontSize="xs" color={colors.text.muted}>
-                              {conversation._count.messages} messages
-                            </Text>
-                          </HStack>
+                        {formatLastMessage(conversation) && (
+                          <Text
+                            fontSize="xs"
+                            color={colors.text.secondary}
+                            noOfLines={1}
+                            textAlign="left"
+                          >
+                            {formatLastMessage(conversation)}
+                          </Text>
                         )}
-                    </VStack>
-                  </Button>
+
+                        {conversation._count &&
+                          conversation._count.messages > 0 && (
+                            <HStack justify="space-between" align="center">
+                              <Text fontSize="xs" color={colors.text.muted}>
+                                {conversation._count.messages} messages
+                              </Text>
+                            </HStack>
+                          )}
+                      </VStack>
+                    </Button>
+                    <ConversationMenu
+                      conversation={conversation}
+                      isOpen={openMenuId === conversation.id}
+                      onOpen={() => setOpenMenuId(conversation.id)}
+                      onClose={() => setOpenMenuId(null)}
+                      onDelete={onDeleteConversation}
+                    />
+                  </Box>
                 ))}
               </VStack>
             )}

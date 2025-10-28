@@ -16,6 +16,7 @@ interface ChatContextType {
   loadConversations: () => Promise<void>;
   refreshConversations: () => Promise<void>;
   addConversation: (conversation: Conversation) => void;
+  deleteConversation: (conversationId: string) => Promise<void>;
 }
 
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
@@ -78,6 +79,24 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
     });
   }, []);
 
+  const deleteConversation = useCallback(async (conversationId: string) => {
+    console.log(
+      "🗑️ ChatContext: deleteConversation called for:",
+      conversationId,
+    );
+    try {
+      await chatService.clearConversation(conversationId);
+      // Remove from local state
+      setConversations((prev) =>
+        prev.filter((conv) => conv.id !== conversationId),
+      );
+      console.log("✅ ChatContext: Conversation deleted successfully");
+    } catch (err) {
+      console.error("❌ ChatContext: Failed to delete conversation:", err);
+      throw err;
+    }
+  }, []);
+
   // Load conversations and check API status on mount
   useEffect(() => {
     if (initializedRef.current) {
@@ -121,6 +140,7 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
     loadConversations,
     refreshConversations,
     addConversation,
+    deleteConversation,
   };
 
   return <ChatContext.Provider value={value}>{children}</ChatContext.Provider>;

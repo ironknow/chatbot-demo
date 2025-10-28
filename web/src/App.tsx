@@ -137,7 +137,23 @@ const ChatLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { conversationId } = useParams<{ conversationId: string }>();
   const colors = useThemeColors();
 
-  const { conversations, conversationsLoading } = useChatContext();
+  const { conversations, conversationsLoading, deleteConversation } =
+    useChatContext();
+
+  const handleDeleteConversation = useCallback(
+    async (id: string) => {
+      try {
+        await deleteConversation(id);
+        // If the deleted conversation was the current one, navigate to home
+        if (conversationId === id) {
+          navigate("/");
+        }
+      } catch (error) {
+        console.error("Failed to delete conversation:", error);
+      }
+    },
+    [deleteConversation, conversationId, navigate],
+  );
 
   const mainContentStyles = {
     flex: "1",
@@ -161,6 +177,7 @@ const ChatLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           navigate(`/chat/${conversationId}`)
         }
         onCreateNew={() => navigate("/")}
+        onDeleteConversation={handleDeleteConversation}
       />
 
       {/* Main Content */}

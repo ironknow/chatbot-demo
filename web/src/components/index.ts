@@ -4,6 +4,7 @@ export { default as ChatInput } from "./ChatInput";
 export { default as WelcomeMessage } from "./WelcomeMessage";
 export { default as TypingIndicator } from "./TypingIndicator";
 export { default as Sidebar } from "./Sidebar";
+export { default as ConversationMenu } from "./ConversationMenu";
 export { default as ErrorBoundary } from "./ErrorBoundary";
 export { default as DataFlowVisualizer } from "./DataFlowVisualizer";
 export * from "./ui";
