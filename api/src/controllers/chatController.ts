@@ -1,13 +1,15 @@
+import { Request, Response } from "express";
 import groqService from "../services/groqService.js";
 import ragService from "../services/ragService.js";
 import conversationService from "../services/conversationService.js";
 import messageProcessingService from "../services/messageProcessingService.js";
 import flowTrackingService from "../services/flowTrackingService.js";
 import { CONFIG } from "../config/chatConfig.js";
+import type { FlowStep } from "../types/index.js";
 
 export class ChatController {
   // Create a new conversation
-  async createConversation(req, res) {
+  async createConversation(req: Request, res: Response): Promise<void> {
     try {
       const conversationData = await conversationService.createConversation();
 
@@ -24,24 +26,25 @@ export class ChatController {
   }
 
   // Main chat endpoint
-  async sendMessage(req, res) {
+  async sendMessage(req: Request, res: Response): Promise<void> {
     const { message, conversationId } = req.body;
     const userMessage = message?.trim() || "";
     const startTime = Date.now();
 
     // Validate input
     if (!userMessage) {
-      return this.handleEmptyMessage(res, conversationId);
+      this.handleEmptyMessage(res, conversationId || "");
+      return;
     }
 
-    const flowSteps = [];
-    let currentStep = null;
+    const flowSteps: FlowStep[] = [];
+    const currentStep: string | null = null;
 
     try {
       // Process the message through all steps
       const result = await messageProcessingService.processMessage(
         userMessage,
-        conversationId,
+        conversationId || "",
         flowSteps,
         startTime,
       );
@@ -49,7 +52,11 @@ export class ChatController {
       res.json(result);
     } catch (error) {
       console.error("Chat endpoint error:", error);
-      messageProcessingService.handleFlowError(error, currentStep, flowSteps);
+      messageProcessingService.handleFlowError(
+        error as Error,
+        currentStep,
+        flowSteps,
+      );
 
       res.status(500).json({
         reply: CONFIG.MESSAGES.TECHNICAL_ERROR,
@@ -58,15 +65,15 @@ export class ChatController {
         flowData: {
           steps: flowSteps,
           totalDuration: Date.now() - startTime,
-          error: error.message,
+          error: (error as Error).message,
         },
       });
     }
   }
 
   // Handle empty message input
-  handleEmptyMessage(res, conversationId) {
-    return res.json({
+  private handleEmptyMessage(res: Response, conversationId: string): void {
+    res.json({
       reply: CONFIG.MESSAGES.EMPTY_MESSAGE,
       conversationId: conversationId || CONFIG.CONVERSATION.DEFAULT_ID,
       timestamp: new Date().toISOString(),
@@ -75,9 +82,13 @@ export class ChatController {
   }
 
   // Get conversation history
-  async getConversation(req, res) {
+  async getConversation(req: Request, res: Response): Promise<void> {
     try {
       const { conversationId } = req.params;
+      if (!conversationId) {
+        res.status(400).json({ error: "Conversation ID is required" });
+        return;
+      }
       const history = await conversationService.getConversation(conversationId);
       res.json({ messages: history });
     } catch (error) {
@@ -89,7 +100,7 @@ export class ChatController {
   }
 
   // Get all conversations
-  async getAllConversations(req, res) {
+  async getAllConversations(req: Request, res: Response): Promise<void> {
     try {
       const conversations = await conversationService.getAllConversations();
       res.json({ conversations });
@@ -102,9 +113,13 @@ export class ChatController {
   }
 
   // Clear conversation history
-  async clearConversation(req, res) {
+  async clearConversation(req: Request, res: Response): Promise<void> {
     try {
       const { conversationId } = req.params;
+      if (!conversationId) {
+        res.status(400).json({ error: "Conversation ID is required" });
+        return;
+      }
       const success =
         await conversationService.clearConversation(conversationId);
       if (success) {
@@ -123,20 +138,22 @@ export class ChatController {
   }
 
   // Test RAG search endpoint
-  async testRAGSearch(req, res) {
+  async testRAGSearch(req: Request, res: Response): Promise<void> {
     try {
       const { query } = req.body;
 
       if (!query) {
-        return res.status(400).json({ error: CONFIG.MESSAGES.QUERY_REQUIRED });
+        res.status(400).json({ error: CONFIG.MESSAGES.QUERY_REQUIRED });
+        return;
       }
 
       const ragStatus = await ragService.getStatus();
       if (!ragStatus.available) {
-        return res.status(503).json({
+        res.status(503).json({
           error: CONFIG.MESSAGES.RAG_NOT_AVAILABLE,
           ragStatus,
         });
+        return;
       }
 
       const searchResults = await ragService.searchDocuments(query);
@@ -152,14 +169,14 @@ export class ChatController {
       console.error("RAG search test error:", error);
       res.status(500).json({
         error: CONFIG.MESSAGES.FAILED_RAG_SEARCH,
-        message: error.message,
+        message: (error as Error).message,
         timestamp: new Date().toISOString(),
       });
     }
   }
 
   // Health check
-  async healthCheck(req, res) {
+  async healthCheck(req: Request, res: Response): Promise<void> {
     try {
       const groqStatus = await groqService.getStatus();
       const conversationCount =

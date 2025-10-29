@@ -1,8 +1,41 @@
 import fetch from "node-fetch";
 import { groqConfig, systemPrompt } from "../config/groq.js";
 import ragService from "./ragService.js";
+import type { Message, GroqResponse } from "../types/index.js";
+
+interface GroqMessage {
+  role: "system" | "user" | "assistant";
+  content: string;
+}
+
+interface GroqAPIResponse {
+  choices?: Array<{
+    message?: {
+      content: string;
+    };
+  }>;
+  usage?: {
+    total_tokens?: number;
+  };
+}
+
+interface ProcessingStep {
+  id: string;
+  name: string;
+  description: string;
+  status: string;
+  timestamp: string;
+  duration?: number;
+  data?: Record<string, any>;
+}
 
 export class GroqService {
+  private apiKey: string | undefined;
+  private model: string;
+  private maxTokens: number;
+  private temperature: number;
+  private baseURL: string;
+
   constructor() {
     this.apiKey = groqConfig.apiKey;
     this.model = groqConfig.model;
@@ -12,15 +45,18 @@ export class GroqService {
   }
 
   // Format conversation history for Groq API
-  formatConversationForAI(conversationHistory) {
+  formatConversationForAI(conversationHistory: Message[]): GroqMessage[] {
     return conversationHistory.map((msg) => ({
-      role: msg.sender === "user" ? "user" : "assistant",
+      role: msg.sender === "user" ? ("user" as const) : ("assistant" as const),
       content: msg.text,
     }));
   }
 
   // Get AI response from Groq with RAG enhancement
-  async getAIResponse(userMessage, conversationHistory = []) {
+  async getAIResponse(
+    userMessage: string,
+    conversationHistory: Message[] = [],
+  ): Promise<string> {
     try {
       // Check if API key is configured
       if (!this.apiKey) {
@@ -28,8 +64,7 @@ export class GroqService {
       }
 
       // Try to get RAG-enhanced context first
-      let ragContext = null;
-      let ragResponse = null;
+      let ragContext: { context: string; sources: any[] } | null = null;
 
       try {
         // Check if RAG service is available
@@ -48,7 +83,7 @@ export class GroqService {
       } catch (ragError) {
         console.warn(
           "RAG integration failed, falling back to standard response:",
-          ragError.message,
+          (ragError as Error).message,
         );
       }
 
@@ -60,7 +95,7 @@ export class GroqService {
       }
 
       // Format the conversation history
-      const messages = [
+      const messages: GroqMessage[] = [
         { role: "system", content: enhancedSystemPrompt },
         ...this.formatConversationForAI(conversationHistory),
         { role: "user", content: userMessage },
@@ -81,7 +116,7 @@ export class GroqService {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
+        const errorData = (await response.json()) as any;
         console.error("Groq API Error:", errorData);
 
         if (response.status === 401) {
@@ -93,7 +128,7 @@ export class GroqService {
         }
       }
 
-      const data = await response.json();
+      const data = (await response.json()) as GroqAPIResponse;
       console.log("Groq API Response:", data); // Debug log
 
       if (!data.choices || !data.choices[0] || !data.choices[0].message) {
@@ -109,9 +144,12 @@ export class GroqService {
   }
 
   // Get AI response with detailed flow tracking data
-  async getAIResponseWithFlowData(userMessage, conversationHistory = []) {
+  async getAIResponseWithFlowData(
+    userMessage: string,
+    conversationHistory: Message[] = [],
+  ): Promise<GroqResponse> {
     const startTime = Date.now();
-    const flowData = {
+    const flowData: GroqResponse = {
       response: null,
       ragUsed: false,
       ragContext: null,
@@ -130,16 +168,16 @@ export class GroqService {
 
       // Step 1: RAG Processing
       const ragStartTime = Date.now();
-      flowData.processingSteps.push({
+      const ragStep: ProcessingStep = {
         id: "rag-processing",
         name: "RAG Processing",
         description: "Checking RAG service availability and context retrieval",
         status: "active",
         timestamp: new Date().toISOString(),
-      });
+      };
+      flowData.processingSteps?.push(ragStep);
 
-      let ragContext = null;
-      let ragResponse = null;
+      let ragContext: { context: string; sources: any[] } | null = null;
 
       try {
         // Check if RAG service is available
@@ -161,38 +199,36 @@ export class GroqService {
       } catch (ragError) {
         console.warn(
           "RAG integration failed, falling back to standard response:",
-          ragError.message,
+          (ragError as Error).message,
         );
-        flowData.processingSteps[0].status = "error";
-        flowData.processingSteps[0].data = { error: ragError.message };
+        if (ragStep) {
+          ragStep.status = "error";
+          ragStep.data = { error: (ragError as Error).message };
+        }
       }
 
       const ragDuration = Date.now() - ragStartTime;
-      flowData.processingSteps[0].status =
-        flowData.processingSteps[0].status === "error" ? "error" : "completed";
-      flowData.processingSteps[0].duration = ragDuration;
-      flowData.processingSteps[0].data = {
-        ...flowData.processingSteps[0].data,
-        ragAvailable: !!ragContext || !!ragResponse,
-        ragUsed: flowData.ragUsed,
-        processingTime: ragDuration,
-      };
-
-      // If we got a direct RAG response, use it
-      if (ragResponse) {
-        flowData.response = ragResponse;
-        return flowData;
+      if (ragStep) {
+        ragStep.status = ragStep.status === "error" ? "error" : "completed";
+        ragStep.duration = ragDuration;
+        ragStep.data = {
+          ...ragStep.data,
+          ragAvailable: !!ragContext,
+          ragUsed: flowData.ragUsed,
+          processingTime: ragDuration,
+        };
       }
 
       // Step 2: Groq API Processing
       const groqStartTime = Date.now();
-      flowData.processingSteps.push({
+      const groqStep: ProcessingStep = {
         id: "groq-processing",
         name: "Groq API Processing",
         description: "Sending request to Groq API and processing response",
         status: "active",
         timestamp: new Date().toISOString(),
-      });
+      };
+      flowData.processingSteps?.push(groqStep);
 
       // Build enhanced system prompt with RAG context
       let enhancedSystemPrompt = systemPrompt;
@@ -202,7 +238,7 @@ export class GroqService {
       }
 
       // Format the conversation history
-      const messages = [
+      const messages: GroqMessage[] = [
         { role: "system", content: enhancedSystemPrompt },
         ...this.formatConversationForAI(conversationHistory),
         { role: "user", content: userMessage },
@@ -225,15 +261,17 @@ export class GroqService {
       const groqDuration = Date.now() - groqStartTime;
 
       if (!response.ok) {
-        const errorData = await response.json();
+        const errorData = (await response.json()) as any;
         console.error("Groq API Error:", errorData);
 
-        flowData.processingSteps[1].status = "error";
-        flowData.processingSteps[1].duration = groqDuration;
-        flowData.processingSteps[1].data = {
-          error: errorData,
-          status: response.status,
-        };
+        if (groqStep) {
+          groqStep.status = "error";
+          groqStep.duration = groqDuration;
+          groqStep.data = {
+            error: errorData,
+            status: response.status,
+          };
+        }
 
         if (response.status === 401) {
           flowData.response =
@@ -248,17 +286,19 @@ export class GroqService {
         return flowData;
       }
 
-      const data = await response.json();
+      const data = (await response.json()) as GroqAPIResponse;
       console.log("Groq API Response:", data); // Debug log
 
       if (!data.choices || !data.choices[0] || !data.choices[0].message) {
         console.error("Unexpected response structure:", data);
-        flowData.processingSteps[1].status = "error";
-        flowData.processingSteps[1].duration = groqDuration;
-        flowData.processingSteps[1].data = {
-          error: "Unexpected response structure",
-          data,
-        };
+        if (groqStep) {
+          groqStep.status = "error";
+          groqStep.duration = groqDuration;
+          groqStep.data = {
+            error: "Unexpected response structure",
+            data,
+          };
+        }
         flowData.response =
           "I received an unexpected response. Please try again! 🤔";
         return flowData;
@@ -266,14 +306,16 @@ export class GroqService {
 
       flowData.response = data.choices[0].message.content.trim();
       flowData.tokens = data.usage?.total_tokens || null;
-      flowData.processingSteps[1].status = "completed";
-      flowData.processingSteps[1].duration = groqDuration;
-      flowData.processingSteps[1].data = {
-        model: this.model,
-        tokens: flowData.tokens,
-        processingTime: groqDuration,
-        responseLength: flowData.response.length,
-      };
+      if (groqStep) {
+        groqStep.status = "completed";
+        groqStep.duration = groqDuration;
+        groqStep.data = {
+          model: this.model,
+          tokens: flowData.tokens,
+          processingTime: groqDuration,
+          responseLength: flowData.response?.length || 0,
+        };
+      }
 
       return flowData;
     } catch (error) {
@@ -282,12 +324,12 @@ export class GroqService {
         "I'm having trouble connecting to the AI service. Please try again in a moment! 🔧";
 
       // Mark the last step as error if it exists
-      if (flowData.processingSteps.length > 0) {
+      if (flowData.processingSteps && flowData.processingSteps.length > 0) {
         const lastStep =
           flowData.processingSteps[flowData.processingSteps.length - 1];
         if (lastStep.status === "active") {
           lastStep.status = "error";
-          lastStep.data = { ...lastStep.data, error: error.message };
+          lastStep.data = { ...lastStep.data, error: (error as Error).message };
         }
       }
 
@@ -296,12 +338,12 @@ export class GroqService {
   }
 
   // Check if service is properly configured
-  isConfigured() {
+  isConfigured(): boolean {
     return !!this.apiKey;
   }
 
   // Get service status
-  async getStatus() {
+  async getStatus(): Promise<any> {
     try {
       const ragStatus = await ragService.getStatus();
 
@@ -318,7 +360,7 @@ export class GroqService {
         model: this.model,
         maxTokens: this.maxTokens,
         temperature: this.temperature,
-        rag: { available: false, error: error.message },
+        rag: { available: false, error: (error as Error).message },
       };
     }
   }

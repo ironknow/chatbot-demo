@@ -2,10 +2,20 @@ import groqService from "./groqService.js";
 import conversationService from "./conversationService.js";
 import flowTrackingService from "./flowTrackingService.js";
 import { CONFIG } from "../config/chatConfig.js";
+import type {
+  Message,
+  FlowStep,
+  ChatResponse,
+  GroqResponse,
+} from "../types/index.js";
 
 export class MessageProcessingService {
   // Process backend step
-  async processBackendStep(userMessage, conversationId, flowSteps) {
+  async processBackendStep(
+    userMessage: string,
+    conversationId: string,
+    flowSteps: FlowStep[],
+  ): Promise<Message[]> {
     const backendStartTime = Date.now();
 
     const step = flowTrackingService.createBackendStep(CONFIG.STATUS.ACTIVE, {
@@ -26,7 +36,11 @@ export class MessageProcessingService {
   }
 
   // Process AI step
-  async processAIStep(userMessage, conversationHistory, flowSteps) {
+  async processAIStep(
+    userMessage: string,
+    conversationHistory: Message[],
+    flowSteps: FlowStep[],
+  ): Promise<GroqResponse> {
     const aiStartTime = Date.now();
 
     const step = flowTrackingService.createAIStep(CONFIG.STATUS.ACTIVE, {
@@ -41,7 +55,7 @@ export class MessageProcessingService {
     const aiDuration = Date.now() - aiStartTime;
 
     flowTrackingService.completeStep(step, aiDuration, {
-      response: aiResponseData.response,
+      response: aiResponseData.response || "",
       ragUsed: aiResponseData.ragUsed,
       ragContext: aiResponseData.ragContext,
       model: aiResponseData.model,
@@ -53,16 +67,16 @@ export class MessageProcessingService {
 
   // Process response step
   async processResponseStep(
-    userMessage,
-    conversationId,
-    conversationHistory,
-    aiResponseData,
-    flowSteps,
-  ) {
+    userMessage: string,
+    conversationId: string,
+    conversationHistory: Message[],
+    aiResponseData: GroqResponse,
+    flowSteps: FlowStep[],
+  ): Promise<void> {
     const responseStartTime = Date.now();
 
     const step = flowTrackingService.createResponseStep(CONFIG.STATUS.ACTIVE, {
-      response: aiResponseData.response,
+      response: aiResponseData.response || "",
     });
     flowSteps.push(step);
 
@@ -70,7 +84,7 @@ export class MessageProcessingService {
       conversationId,
       conversationHistory,
       userMessage,
-      aiResponseData.response,
+      aiResponseData.response || "",
     );
 
     const responseDuration = Date.now() - responseStartTime;
@@ -81,7 +95,12 @@ export class MessageProcessingService {
   }
 
   // Process complete message flow
-  async processMessage(userMessage, conversationId, flowSteps, startTime) {
+  async processMessage(
+    userMessage: string,
+    conversationId: string,
+    flowSteps: FlowStep[],
+    startTime: number,
+  ): Promise<ChatResponse> {
     // Step 1: Backend Processing
     const conversationHistory = await this.processBackendStep(
       userMessage,
@@ -108,7 +127,7 @@ export class MessageProcessingService {
     const totalDuration = Date.now() - startTime;
 
     return {
-      reply: aiResponseData.response,
+      reply: aiResponseData.response || "",
       conversationId: conversationId || CONFIG.CONVERSATION.DEFAULT_ID,
       timestamp: new Date().toISOString(),
       flowData: flowTrackingService.createFlowDataResponse(
@@ -123,7 +142,11 @@ export class MessageProcessingService {
   }
 
   // Handle flow error
-  handleFlowError(error, currentStep, flowSteps) {
+  handleFlowError(
+    error: Error,
+    currentStep: string | null,
+    flowSteps: FlowStep[],
+  ): void {
     if (currentStep && flowSteps.length > 0) {
       flowTrackingService.markStepAsErrorById(flowSteps, currentStep, error);
     }

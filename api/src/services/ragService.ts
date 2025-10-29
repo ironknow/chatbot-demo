@@ -1,35 +1,78 @@
 import fetch from "node-fetch";
 
+interface RAGSearchResult {
+  content: string;
+  metadata?: {
+    source?: string;
+    page?: number;
+  };
+}
+
+interface ContextualSearchResult {
+  context: string;
+  sources: Array<{
+    content: string;
+    source: string;
+    page: number | null;
+  }>;
+}
+
+interface RAGStatus {
+  available: boolean;
+  baseURL: string;
+  timeout: number;
+  error?: string;
+}
+
+interface RAGHealthResponse {
+  status?: string;
+  rag_flow_ready?: boolean;
+}
+
+interface RAGSearchResponse {
+  results?: RAGSearchResult[];
+}
+
+interface RAGChatResponse {
+  response?: string;
+  answer?: string;
+}
+
 export class RAGService {
+  private ragBaseURL: string;
+  private timeout: number;
+
   constructor() {
     this.ragBaseURL = "http://localhost:8000";
     this.timeout = 30000; // 30 seconds timeout
   }
 
   // Check if RAG service is available
-  async isAvailable() {
+  async isAvailable(): Promise<boolean> {
     try {
       const response = await fetch(`${this.ragBaseURL}/health`, {
         method: "GET",
-        timeout: 5000,
-      });
+      } as any);
 
       if (response.ok) {
-        const healthData = await response.json();
-        return healthData.status === "healthy" && healthData.rag_flow_ready;
+        const healthData = (await response.json()) as RAGHealthResponse;
+        return (
+          healthData.status === "healthy" &&
+          (healthData.rag_flow_ready || false)
+        );
       }
       return false;
     } catch (error) {
       console.warn(
         "RAG service not available - continuing without RAG enhancement:",
-        error.message,
+        (error as Error).message,
       );
       return false;
     }
   }
 
   // Search documents using RAG
-  async searchDocuments(query) {
+  async searchDocuments(query: string): Promise<RAGSearchResult[]> {
     try {
       const response = await fetch(`${this.ragBaseURL}/search`, {
         method: "POST",
@@ -37,8 +80,7 @@ export class RAGService {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ query }),
-        timeout: this.timeout,
-      });
+      } as any);
 
       if (!response.ok) {
         throw new Error(
@@ -46,7 +88,7 @@ export class RAGService {
         );
       }
 
-      const data = await response.json();
+      const data = (await response.json()) as RAGSearchResponse;
       return data.results || [];
     } catch (error) {
       console.error("RAG search error:", error);
@@ -55,7 +97,7 @@ export class RAGService {
   }
 
   // Get RAG-enhanced response
-  async getRAGResponse(query) {
+  async getRAGResponse(query: string): Promise<string | null> {
     try {
       const response = await fetch(`${this.ragBaseURL}/chat`, {
         method: "POST",
@@ -63,8 +105,7 @@ export class RAGService {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ query }),
-        timeout: this.timeout,
-      });
+      } as any);
 
       if (!response.ok) {
         throw new Error(
@@ -72,7 +113,7 @@ export class RAGService {
         );
       }
 
-      const data = await response.json();
+      const data = (await response.json()) as RAGChatResponse;
       return (
         data.response ||
         data.answer ||
@@ -85,7 +126,10 @@ export class RAGService {
   }
 
   // Enhanced search with context formatting
-  async getContextualSearch(query, maxResults = 3) {
+  async getContextualSearch(
+    query: string,
+    maxResults: number = 3,
+  ): Promise<ContextualSearchResult | null> {
     try {
       const results = await this.searchDocuments(query);
 
@@ -120,7 +164,7 @@ export class RAGService {
   }
 
   // Get service status
-  async getStatus() {
+  async getStatus(): Promise<RAGStatus> {
     try {
       const isAvailable = await this.isAvailable();
       return {
@@ -133,7 +177,7 @@ export class RAGService {
         available: false,
         baseURL: this.ragBaseURL,
         timeout: this.timeout,
-        error: error.message,
+        error: (error as Error).message,
       };
     }
   }

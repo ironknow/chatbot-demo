@@ -1,15 +1,17 @@
 import prisma from "../lib/prisma.js";
+import type {
+  Message,
+  ConversationStore as IConversationStore,
+} from "../types/index.js";
 
-class ConversationStore {
-  constructor() {
-    this.inMemoryStore = new Map(); // Fallback in-memory storage
-    this.databaseAvailable = true;
-    this.lastDatabaseCheck = 0;
-    this.databaseCheckInterval = 30000; // Check every 30 seconds
-  }
+class ConversationStore implements IConversationStore {
+  private inMemoryStore: Map<string, Message[]> = new Map();
+  private databaseAvailable: boolean = true;
+  private lastDatabaseCheck: number = 0;
+  private readonly databaseCheckInterval: number = 30000; // Check every 30 seconds
 
   // Check if database is available
-  async checkDatabaseAvailability() {
+  private async checkDatabaseAvailability(): Promise<boolean> {
     const now = Date.now();
     if (now - this.lastDatabaseCheck < this.databaseCheckInterval) {
       return this.databaseAvailable;
@@ -23,7 +25,7 @@ class ConversationStore {
     } catch (error) {
       console.warn(
         "Database unavailable, using in-memory storage:",
-        error.message,
+        (error as Error).message,
       );
       this.databaseAvailable = false;
       this.lastDatabaseCheck = now;
@@ -32,7 +34,7 @@ class ConversationStore {
   }
 
   // Get conversation messages
-  async get(conversationId) {
+  async get(conversationId: string): Promise<Message[]> {
     try {
       const dbAvailable = await this.checkDatabaseAvailability();
 
@@ -47,8 +49,8 @@ class ConversationStore {
         });
 
         if (conversation) {
-          const messages = conversation.messages.map((msg) => ({
-            sender: msg.sender,
+          const messages: Message[] = conversation.messages.map((msg: any) => ({
+            sender: msg.sender as "user" | "bot",
             text: msg.text,
             timestamp: msg.timestamp.toISOString(),
           }));
@@ -62,13 +64,20 @@ class ConversationStore {
       // Fallback to in-memory storage
       return this.inMemoryStore.get(conversationId) || [];
     } catch (error) {
-      console.warn("Database error, using in-memory storage:", error.message);
+      console.warn(
+        "Database error, using in-memory storage:",
+        (error as Error).message,
+      );
       return this.inMemoryStore.get(conversationId) || [];
     }
   }
 
   // Create or update conversation with messages
-  async set(conversationId, messages, title = null) {
+  async set(
+    conversationId: string,
+    messages: Message[],
+    title?: string,
+  ): Promise<void> {
     try {
       // Keep only last 20 messages to prevent bloat
       const recentMessages = messages.slice(-20);
@@ -80,7 +89,7 @@ class ConversationStore {
 
       if (dbAvailable) {
         // Store in database
-        const conversation = await prisma.conversation.upsert({
+        await prisma.conversation.upsert({
           where: { id: conversationId },
           update: {
             updatedAt: new Date(),
@@ -107,30 +116,18 @@ class ConversationStore {
               })),
             },
           },
-          include: {
-            messages: {
-              orderBy: { timestamp: "asc" },
-            },
-          },
         });
-
-        return conversation.messages.map((msg) => ({
-          sender: msg.sender,
-          text: msg.text,
-          timestamp: msg.timestamp.toISOString(),
-        }));
       }
-
-      // Return in-memory messages
-      return recentMessages;
     } catch (error) {
-      console.warn("Database error, using in-memory storage:", error.message);
-      return this.inMemoryStore.get(conversationId) || [];
+      console.warn(
+        "Database error, using in-memory storage:",
+        (error as Error).message,
+      );
     }
   }
 
   // Delete conversation
-  async delete(conversationId) {
+  async delete(conversationId: string): Promise<boolean> {
     try {
       // Always remove from memory
       this.inMemoryStore.delete(conversationId);
@@ -145,13 +142,16 @@ class ConversationStore {
 
       return true;
     } catch (error) {
-      console.warn("Database error, removed from memory only:", error.message);
+      console.warn(
+        "Database error, removed from memory only:",
+        (error as Error).message,
+      );
       return true; // Still return true since we removed from memory
     }
   }
 
   // Clear all conversations
-  async clear() {
+  async clear(): Promise<boolean> {
     try {
       // Clear memory first
       this.inMemoryStore.clear();
@@ -164,13 +164,16 @@ class ConversationStore {
 
       return true;
     } catch (error) {
-      console.warn("Database error, cleared memory only:", error.message);
+      console.warn(
+        "Database error, cleared memory only:",
+        (error as Error).message,
+      );
       return true; // Still return true since we cleared memory
     }
   }
 
   // Get conversation count
-  async size() {
+  async size(): Promise<number> {
     try {
       const dbAvailable = await this.checkDatabaseAvailability();
 
@@ -180,13 +183,16 @@ class ConversationStore {
 
       return this.inMemoryStore.size;
     } catch (error) {
-      console.warn("Database error, returning memory count:", error.message);
+      console.warn(
+        "Database error, returning memory count:",
+        (error as Error).message,
+      );
       return this.inMemoryStore.size;
     }
   }
 
   // Get all conversations with metadata
-  async getAll() {
+  async getAll(): Promise<any[]> {
     try {
       const dbAvailable = await this.checkDatabaseAvailability();
 
@@ -204,7 +210,7 @@ class ConversationStore {
           orderBy: { updatedAt: "desc" },
         });
 
-        return conversations.map((conv) => ({
+        return conversations.map((conv: any) => ({
           id: conv.id,
           title: conv.title,
           lastMessage: conv.messages[0]?.text || "No messages",
@@ -214,7 +220,7 @@ class ConversationStore {
       }
 
       // Fallback to in-memory conversations
-      const conversations = [];
+      const conversations: any[] = [];
       for (const [id, messages] of this.inMemoryStore.entries()) {
         conversations.push({
           id,
@@ -226,19 +232,20 @@ class ConversationStore {
       }
 
       return conversations.sort(
-        (a, b) => new Date(b.updatedAt) - new Date(a.updatedAt),
+        (a, b) =>
+          new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
       );
     } catch (error) {
       console.warn(
         "Database error, returning memory conversations:",
-        error.message,
+        (error as Error).message,
       );
       return [];
     }
   }
 
   // Get storage status
-  getStorageStatus() {
+  getStorageStatus(): any {
     return {
       databaseAvailable: this.databaseAvailable,
       memoryConversations: this.inMemoryStore.size,

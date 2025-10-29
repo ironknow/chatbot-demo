@@ -1,11 +1,11 @@
-import express from "express";
+import { Router } from "express";
 import chatRoutes from "./chatRoutes.js";
 import chatController from "../controllers/chatController.js";
 
-const router = express.Router();
+const router: Router = Router();
 
 // Health check route
-router.get("/health", chatController.healthCheck);
+router.get("/health", chatController.healthCheck.bind(chatController));
 
 // Chat API routes
 router.use("/chat", chatRoutes);

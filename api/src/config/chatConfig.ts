@@ -68,4 +68,4 @@ export const CONFIG = {
     "New Chat",
     "Let's Connect",
   ],
-};
+} as const;
