@@ -15,9 +15,9 @@ interface UseFlowTrackingReturn {
   flowSteps: FlowStep[];
   isProcessing: boolean;
   startFlow: () => void;
-  setStep: (stepId: string, data?: any) => void;
-  completeStep: (stepId: string, duration?: number) => void;
-  errorStep: (stepId: string, error: string) => void;
+  setStep: (_stepId: string, _data?: any) => void;
+  completeStep: (_stepId: string, _duration?: number) => void;
+  errorStep: (_stepId: string, _error: string) => void;
   completeFlow: () => void;
   clearFlow: () => void;
 }

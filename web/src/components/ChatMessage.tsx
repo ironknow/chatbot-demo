@@ -8,6 +8,7 @@ import {
 } from "react-icons/md";
 import { ChatMessageProps } from "@/types";
 import { useThemeColors } from "@/theme/colors";
+import MarkdownRenderer from "./MarkdownRenderer";
 
 const MESSAGE_ACTIONS = [
   { icon: "MdThumbUp", label: "Good response", ariaLabel: "Good response" },
@@ -16,84 +17,89 @@ const MESSAGE_ACTIONS = [
   { icon: "MdRefresh", label: "Regenerate", ariaLabel: "Regenerate" },
 ];
 
-const ChatMessage: React.FC<ChatMessageProps> = memo(({ message, index }) => {
-  const isUser = message.sender === "user";
-  const colors = useThemeColors();
+const ChatMessage: React.FC<ChatMessageProps> = memo(
+  ({ message, index: _index }) => {
+    const isUser = message.sender === "user";
+    const colors = useThemeColors();
 
-  const messageActions = useMemo(() => {
-    if (isUser) return null;
+    const messageActions = useMemo(() => {
+      if (isUser) return null;
 
-    const icons = {
-      MdThumbUp,
-      MdThumbDown,
-      MdContentCopy,
-      MdRefresh,
-    };
+      const icons = {
+        MdThumbUp,
+        MdThumbDown,
+        MdContentCopy,
+        MdRefresh,
+      };
+
+      return (
+        <HStack spacing={1} mt={3}>
+          {MESSAGE_ACTIONS.map((action) => {
+            const IconComponent = icons[action.icon as keyof typeof icons];
+            return (
+              <Tooltip key={action.label} label={action.label}>
+                <IconButton
+                  aria-label={action.ariaLabel}
+                  icon={<IconComponent />}
+                  size="xs"
+                  variant="ghost"
+                  colorScheme="gray"
+                />
+              </Tooltip>
+            );
+          })}
+        </HStack>
+      );
+    }, [isUser]);
 
     return (
-      <HStack spacing={1} mt={3}>
-        {MESSAGE_ACTIONS.map((action) => {
-          const IconComponent = icons[action.icon as keyof typeof icons];
-          return (
-            <Tooltip key={action.label} label={action.label}>
-              <IconButton
-                aria-label={action.ariaLabel}
-                icon={<IconComponent />}
-                size="xs"
-                variant="ghost"
-                colorScheme="gray"
-              />
-            </Tooltip>
-          );
-        })}
-      </HStack>
-    );
-  }, [isUser]);
-
-  return (
-    <Box
-      py={6}
-      px={4}
-      bg={isUser ? colors.background.primary : colors.background.secondary}
-      borderBottom="1px"
-      borderColor={colors.border.primary}
-    >
-      <HStack align="flex-start" spacing={4} maxW="4xl" mx="auto">
-        {/* Avatar */}
-        <Box
-          w={8}
-          h={8}
-          borderRadius="full"
-          bg={isUser ? "green.500" : "blue.500"}
-          display="flex"
-          alignItems="center"
-          justifyContent="center"
-          flexShrink={0}
-          mt={1}
-        >
-          <Text fontSize="sm" color="white" fontWeight="bold">
-            {isUser ? "U" : "B"}
-          </Text>
-        </Box>
-
-        {/* Message Content */}
-        <Box flex="1">
-          <Text
-            fontSize="md"
-            lineHeight="1.6"
-            color={colors.text.primary}
-            whiteSpace="pre-wrap"
-            wordBreak="break-word"
+      <Box
+        py={6}
+        px={4}
+        bg={isUser ? colors.background.primary : colors.background.secondary}
+        borderBottom="1px"
+        borderColor={colors.border.primary}
+      >
+        <HStack align="flex-start" spacing={4} maxW="4xl" mx="auto">
+          {/* Avatar */}
+          <Box
+            w={8}
+            h={8}
+            borderRadius="full"
+            bg={isUser ? "green.500" : "blue.500"}
+            display="flex"
+            alignItems="center"
+            justifyContent="center"
+            flexShrink={0}
+            mt={1}
           >
-            {message.text}
-          </Text>
+            <Text fontSize="sm" color="white" fontWeight="bold">
+              {isUser ? "U" : "B"}
+            </Text>
+          </Box>
 
-          {/* Message Actions */}
-          {messageActions}
-        </Box>
-      </HStack>
-    </Box>
-  );
-});
+          {/* Message Content */}
+          <Box flex="1" wordBreak="break-word">
+            {isUser ? (
+              <Text
+                fontSize="md"
+                lineHeight="1.6"
+                color={colors.text.primary}
+                whiteSpace="pre-wrap"
+              >
+                {message.text}
+              </Text>
+            ) : (
+              <MarkdownRenderer content={message.text} />
+            )}
+
+            {/* Message Actions */}
+            {messageActions}
+          </Box>
+        </HStack>
+      </Box>
+    );
+  },
+);
 
 export default ChatMessage;

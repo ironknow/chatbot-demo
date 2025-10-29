@@ -7,4 +7,5 @@ export { default as Sidebar } from "./Sidebar";
 export { default as ConversationMenu } from "./ConversationMenu";
 export { default as ErrorBoundary } from "./ErrorBoundary";
 export { default as DataFlowVisualizer } from "./DataFlowVisualizer";
+export { default as MarkdownRenderer } from "./MarkdownRenderer";
 export * from "./ui";
