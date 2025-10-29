@@ -10,7 +10,7 @@ export const groqConfig = {
   baseURL: "https://api.groq.com/openai/v1",
 };
 
-export const systemPrompt = `You are Chatty, a friendly and helpful AI assistant. You are having a conversation with a user through a chat interface. 
+export const systemPrompt = `You are Chatty, a friendly and helpful AI assistant. You are having a conversation with a user through a chat interface.
 
 Key guidelines:
 - Be conversational, warm, and engaging

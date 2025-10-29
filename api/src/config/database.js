@@ -1,4 +1,4 @@
-import prisma from '../lib/prisma.js';
+import prisma from "../lib/prisma.js";
 
 class ConversationStore {
   constructor() {
@@ -21,7 +21,10 @@ class ConversationStore {
       this.lastDatabaseCheck = now;
       return true;
     } catch (error) {
-      console.warn('Database unavailable, using in-memory storage:', error.message);
+      console.warn(
+        "Database unavailable, using in-memory storage:",
+        error.message,
+      );
       this.databaseAvailable = false;
       this.lastDatabaseCheck = now;
       return false;
@@ -38,16 +41,16 @@ class ConversationStore {
           where: { id: conversationId },
           include: {
             messages: {
-              orderBy: { timestamp: 'asc' }
-            }
-          }
+              orderBy: { timestamp: "asc" },
+            },
+          },
         });
 
         if (conversation) {
-          const messages = conversation.messages.map(msg => ({
+          const messages = conversation.messages.map((msg) => ({
             sender: msg.sender,
             text: msg.text,
-            timestamp: msg.timestamp.toISOString()
+            timestamp: msg.timestamp.toISOString(),
           }));
 
           // Also store in memory as backup
@@ -59,7 +62,7 @@ class ConversationStore {
       // Fallback to in-memory storage
       return this.inMemoryStore.get(conversationId) || [];
     } catch (error) {
-      console.warn('Database error, using in-memory storage:', error.message);
+      console.warn("Database error, using in-memory storage:", error.message);
       return this.inMemoryStore.get(conversationId) || [];
     }
   }
@@ -83,42 +86,45 @@ class ConversationStore {
             updatedAt: new Date(),
             messages: {
               deleteMany: {}, // Clear existing messages
-              create: recentMessages.map(msg => ({
+              create: recentMessages.map((msg) => ({
                 sender: msg.sender,
                 text: msg.text,
-                timestamp: new Date(msg.timestamp)
-              }))
-            }
+                timestamp: new Date(msg.timestamp),
+              })),
+            },
           },
           create: {
             id: conversationId,
-            title: title || recentMessages[0]?.text?.substring(0, 50) || 'New Conversation',
+            title:
+              title ||
+              recentMessages[0]?.text?.substring(0, 50) ||
+              "New Conversation",
             messages: {
-              create: recentMessages.map(msg => ({
+              create: recentMessages.map((msg) => ({
                 sender: msg.sender,
                 text: msg.text,
-                timestamp: new Date(msg.timestamp)
-              }))
-            }
+                timestamp: new Date(msg.timestamp),
+              })),
+            },
           },
           include: {
             messages: {
-              orderBy: { timestamp: 'asc' }
-            }
-          }
+              orderBy: { timestamp: "asc" },
+            },
+          },
         });
 
-        return conversation.messages.map(msg => ({
+        return conversation.messages.map((msg) => ({
           sender: msg.sender,
           text: msg.text,
-          timestamp: msg.timestamp.toISOString()
+          timestamp: msg.timestamp.toISOString(),
         }));
       }
 
       // Return in-memory messages
       return recentMessages;
     } catch (error) {
-      console.warn('Database error, using in-memory storage:', error.message);
+      console.warn("Database error, using in-memory storage:", error.message);
       return this.inMemoryStore.get(conversationId) || [];
     }
   }
@@ -133,13 +139,13 @@ class ConversationStore {
 
       if (dbAvailable) {
         await prisma.conversation.delete({
-          where: { id: conversationId }
+          where: { id: conversationId },
         });
       }
 
       return true;
     } catch (error) {
-      console.warn('Database error, removed from memory only:', error.message);
+      console.warn("Database error, removed from memory only:", error.message);
       return true; // Still return true since we removed from memory
     }
   }
@@ -158,7 +164,7 @@ class ConversationStore {
 
       return true;
     } catch (error) {
-      console.warn('Database error, cleared memory only:', error.message);
+      console.warn("Database error, cleared memory only:", error.message);
       return true; // Still return true since we cleared memory
     }
   }
@@ -174,7 +180,7 @@ class ConversationStore {
 
       return this.inMemoryStore.size;
     } catch (error) {
-      console.warn('Database error, returning memory count:', error.message);
+      console.warn("Database error, returning memory count:", error.message);
       return this.inMemoryStore.size;
     }
   }
@@ -188,22 +194,22 @@ class ConversationStore {
         const conversations = await prisma.conversation.findMany({
           include: {
             messages: {
-              orderBy: { timestamp: 'desc' },
-              take: 1 // Only get the last message for preview
+              orderBy: { timestamp: "desc" },
+              take: 1, // Only get the last message for preview
             },
             _count: {
-              select: { messages: true }
-            }
+              select: { messages: true },
+            },
           },
-          orderBy: { updatedAt: 'desc' }
+          orderBy: { updatedAt: "desc" },
         });
 
-        return conversations.map(conv => ({
+        return conversations.map((conv) => ({
           id: conv.id,
           title: conv.title,
-          lastMessage: conv.messages[0]?.text || 'No messages',
+          lastMessage: conv.messages[0]?.text || "No messages",
           updatedAt: conv.updatedAt.toISOString(),
-          messageCount: conv._count.messages
+          messageCount: conv._count.messages,
         }));
       }
 
@@ -212,16 +218,21 @@ class ConversationStore {
       for (const [id, messages] of this.inMemoryStore.entries()) {
         conversations.push({
           id,
-          title: messages[0]?.text?.substring(0, 50) || 'New Conversation',
-          lastMessage: messages[messages.length - 1]?.text || 'No messages',
+          title: messages[0]?.text?.substring(0, 50) || "New Conversation",
+          lastMessage: messages[messages.length - 1]?.text || "No messages",
           updatedAt: new Date().toISOString(),
-          messageCount: messages.length
+          messageCount: messages.length,
         });
       }
 
-      return conversations.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+      return conversations.sort(
+        (a, b) => new Date(b.updatedAt) - new Date(a.updatedAt),
+      );
     } catch (error) {
-      console.warn('Database error, returning memory conversations:', error.message);
+      console.warn(
+        "Database error, returning memory conversations:",
+        error.message,
+      );
       return [];
     }
   }
@@ -231,7 +242,7 @@ class ConversationStore {
     return {
       databaseAvailable: this.databaseAvailable,
       memoryConversations: this.inMemoryStore.size,
-      lastDatabaseCheck: new Date(this.lastDatabaseCheck).toISOString()
+      lastDatabaseCheck: new Date(this.lastDatabaseCheck).toISOString(),
     };
   }
 }

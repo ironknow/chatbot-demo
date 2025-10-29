@@ -44,15 +44,19 @@ export class ChatController {
       const titlePrompts = [
         "Generate a creative, engaging title for a new conversation. Keep it short (2-4 words) and welcoming. Examples: 'Let's Chat', 'New Adventure', 'Fresh Start', 'Hello There'. Just return the title, nothing else.",
         "Create a friendly conversation title. Make it inviting and concise (2-4 words). Examples: 'Chat Time', 'New Journey', 'Let's Talk', 'Hello Friend'. Only return the title.",
-        "Generate a warm, welcoming title for starting a new chat. Keep it brief (2-4 words) and positive. Examples: 'New Chat', 'Let's Connect', 'Hello World', 'Fresh Chat'. Just the title please."
+        "Generate a warm, welcoming title for starting a new chat. Keep it brief (2-4 words) and positive. Examples: 'New Chat', 'Let's Connect', 'Hello World', 'Fresh Chat'. Just the title please.",
       ];
 
-      const randomPrompt = titlePrompts[Math.floor(Math.random() * titlePrompts.length)];
+      const randomPrompt =
+        titlePrompts[Math.floor(Math.random() * titlePrompts.length)];
 
       const response = await groqService.getAIResponse(randomPrompt, "");
-      return response.reply.trim().replace(/['"]/g, ''); // Remove quotes if any
+      return response.reply.trim().replace(/['"]/g, ""); // Remove quotes if any
     } catch (error) {
-      console.warn("Failed to generate title with Groq, using fallback:", error.message);
+      console.warn(
+        "Failed to generate title with Groq, using fallback:",
+        error.message,
+      );
       // Fallback titles
       const fallbackTitles = [
         "Let's Chat",
@@ -64,7 +68,7 @@ export class ChatController {
         "Let's Talk",
         "Hello Friend",
         "New Chat",
-        "Let's Connect"
+        "Let's Connect",
       ];
       return fallbackTitles[Math.floor(Math.random() * fallbackTitles.length)];
     }

@@ -14,10 +14,10 @@ app.use("/api", routes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
-  console.error('Unhandled error:', err);
+  console.error("Unhandled error:", err);
   res.status(500).json({
     error: "Internal server error",
-    message: "Something went wrong on our end"
+    message: "Something went wrong on our end",
   });
 });
 
@@ -25,7 +25,7 @@ app.use((err, req, res, next) => {
 app.use((req, res) => {
   res.status(404).json({
     error: "Not found",
-    message: "The requested resource was not found"
+    message: "The requested resource was not found",
   });
 });
 

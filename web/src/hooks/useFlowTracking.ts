@@ -8,7 +8,7 @@ import {
   MdRefresh,
   MdCheckCircle,
 } from "react-icons/md";
-import { FlowStep } from "../types";
+import { FlowStep } from "../types/flow";
 
 interface UseFlowTrackingReturn {
   currentStep: string | null;

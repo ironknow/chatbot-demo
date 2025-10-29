@@ -140,12 +140,12 @@ The frontend is built with TypeScript and includes:
 
 ### Environment Variables
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `GROQ_API_KEY` | Your Groq API key | Required |
-| `GROQ_MODEL` | Groq model to use | `llama-3.1-8b-instant` |
-| `MAX_TOKENS` | Maximum tokens per response | `500` |
-| `TEMPERATURE` | Response creativity (0.0-2.0) | `0.7` |
+| Variable       | Description                   | Default                |
+| -------------- | ----------------------------- | ---------------------- |
+| `GROQ_API_KEY` | Your Groq API key             | Required               |
+| `GROQ_MODEL`   | Groq model to use             | `llama-3.1-8b-instant` |
+| `MAX_TOKENS`   | Maximum tokens per response   | `500`                  |
+| `TEMPERATURE`  | Response creativity (0.0-2.0) | `0.7`                  |
 
 ### Available Models (All FREE!)
 
@@ -225,6 +225,7 @@ Try asking the chatbot:
 ### Debug Mode
 
 Check the API health endpoint:
+
 ```bash
 curl http://localhost:5000/api/health
 ```
@@ -258,3 +259,5 @@ MIT License - feel free to use this project for learning and development!
 ---
 
 **Happy Chatting! 🤖💬**
+
+# Pre-commit Setup Complete
