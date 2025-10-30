@@ -109,6 +109,15 @@ export interface UseChatReturn {
   flowSteps: FlowStep[];
   isFlowProcessing: boolean;
   clearFlow: () => void;
+  // Processing steps for real-time UI
+  processingSteps: Array<{
+    id: string;
+    name: string;
+    description: string;
+    status: "pending" | "active" | "completed" | "error" | "skipped";
+    timestamp?: string;
+    data?: any;
+  }>;
   // Conversations loading state
   conversationsLoading: boolean;
 }

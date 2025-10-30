@@ -5,6 +5,7 @@ const router: Router = Router();
 
 // Chat routes
 router.post("/", chatController.sendMessage.bind(chatController));
+router.post("/stream", chatController.sendMessageStream.bind(chatController));
 router.post("/create", chatController.createConversation.bind(chatController));
 router.get("/", chatController.getAllConversations.bind(chatController));
 router.get(

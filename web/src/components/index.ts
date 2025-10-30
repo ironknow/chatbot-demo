@@ -8,4 +8,5 @@ export { default as ConversationMenu } from "./ConversationMenu";
 export { default as ErrorBoundary } from "./ErrorBoundary";
 export { default as DataFlowVisualizer } from "./DataFlowVisualizer";
 export { default as MarkdownRenderer } from "./MarkdownRenderer";
+export { default as ProcessingStepsIndicator } from "./ProcessingStepsIndicator";
 export * from "./ui";

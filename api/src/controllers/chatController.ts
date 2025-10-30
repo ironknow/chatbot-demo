@@ -71,6 +71,227 @@ export class ChatController {
     }
   }
 
+  // Main chat endpoint with SSE streaming
+  async sendMessageStream(req: Request, res: Response): Promise<void> {
+    const { message, conversationId } = req.body;
+    const userMessage = message?.trim() || "";
+    const startTime = Date.now();
+
+    // Validate input
+    if (!userMessage) {
+      res.status(400).json({ error: "Message cannot be empty" });
+      return;
+    }
+
+    // Set up SSE headers
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache");
+    res.setHeader("Connection", "keep-alive");
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+
+    const sendEvent = (event: string, data: any) => {
+      try {
+        res.write(`event: ${event}\n`);
+        res.write(`data: ${JSON.stringify(data)}\n\n`);
+      } catch (err) {
+        console.error("Error sending SSE event:", err);
+      }
+    };
+
+    const flowSteps: FlowStep[] = [];
+
+    try {
+      // Step 1: Backend Processing
+      sendEvent("step", {
+        id: "backend-processing",
+        name: "Backend Processing",
+        description: "Loading conversation history",
+        status: "active",
+        timestamp: new Date().toISOString(),
+      });
+
+      const conversationHistory =
+        await messageProcessingService.processBackendStep(
+          userMessage,
+          conversationId || "",
+          flowSteps,
+        );
+
+      sendEvent("step", {
+        id: "backend-processing",
+        status: "completed",
+        timestamp: new Date().toISOString(),
+      });
+
+      // Step 2: AI Processing with sub-steps
+      sendEvent("step", {
+        id: "ai-processing",
+        name: "AI Processing",
+        description: "Preparing AI response",
+        status: "active",
+        timestamp: new Date().toISOString(),
+      });
+
+      // Get AI response with step-by-step progress
+      const aiResponseData = await this.processAIWithProgress(
+        userMessage,
+        conversationHistory,
+        sendEvent,
+      );
+
+      sendEvent("step", {
+        id: "ai-processing",
+        status: "completed",
+        timestamp: new Date().toISOString(),
+      });
+
+      // Step 3: Response Processing
+      sendEvent("step", {
+        id: "response-processing",
+        name: "Response Processing",
+        description: "Saving conversation",
+        status: "active",
+        timestamp: new Date().toISOString(),
+      });
+
+      await messageProcessingService.processResponseStep(
+        userMessage,
+        conversationId || "",
+        conversationHistory,
+        aiResponseData,
+        flowSteps,
+      );
+
+      sendEvent("step", {
+        id: "response-processing",
+        status: "completed",
+        timestamp: new Date().toISOString(),
+      });
+
+      // Send final response
+      const totalDuration = Date.now() - startTime;
+      sendEvent("complete", {
+        reply: aiResponseData.response || "",
+        conversationId: conversationId || CONFIG.CONVERSATION.DEFAULT_ID,
+        timestamp: new Date().toISOString(),
+        flowData: flowTrackingService.createFlowDataResponse(
+          flowSteps,
+          totalDuration,
+          {
+            ragUsed: aiResponseData.ragUsed,
+            webSearchUsed: aiResponseData.webSearchUsed,
+            model: aiResponseData.model,
+          },
+        ),
+      });
+
+      res.end();
+    } catch (error) {
+      console.error("Chat stream endpoint error:", error);
+      sendEvent("error", {
+        error: (error as Error).message,
+        reply: CONFIG.MESSAGES.TECHNICAL_ERROR,
+        conversationId: conversationId || CONFIG.CONVERSATION.DEFAULT_ID,
+        timestamp: new Date().toISOString(),
+      });
+      res.end();
+    }
+  }
+
+  // Helper method to process AI with progress updates
+  private async processAIWithProgress(
+    userMessage: string,
+    conversationHistory: any[],
+    sendEvent: (event: string, data: any) => void,
+  ): Promise<any> {
+    // RAG Processing
+    sendEvent("step", {
+      id: "rag-processing",
+      name: "RAG Processing",
+      description: "Searching knowledge base",
+      status: "active",
+      timestamp: new Date().toISOString(),
+    });
+
+    let ragContext: any = null;
+    try {
+      const ragService = (await import("../services/ragService.js")).default;
+      const ragAvailable = await ragService.isAvailable();
+      if (ragAvailable) {
+        ragContext = await ragService.getContextualSearch(userMessage);
+      }
+    } catch (error) {
+      console.warn("RAG processing error:", error);
+    }
+
+    sendEvent("step", {
+      id: "rag-processing",
+      status: ragContext ? "completed" : "skipped",
+      timestamp: new Date().toISOString(),
+      data: { ragUsed: !!ragContext },
+    });
+
+    // Web Search Processing
+    sendEvent("step", {
+      id: "web-search-processing",
+      name: "Web Search",
+      description: "Searching the web for current information",
+      status: "active",
+      timestamp: new Date().toISOString(),
+    });
+
+    let webSearchContext: any = null;
+    try {
+      const webSearchService = (await import("../services/webSearchService.js"))
+        .default;
+      if (webSearchService.shouldSearch(userMessage)) {
+        webSearchContext =
+          await webSearchService.getContextualWebSearch(userMessage);
+      }
+    } catch (error) {
+      console.warn("Web search error:", error);
+    }
+
+    sendEvent("step", {
+      id: "web-search-processing",
+      status: webSearchContext ? "completed" : "skipped",
+      timestamp: new Date().toISOString(),
+      data: { webSearchUsed: !!webSearchContext },
+    });
+
+    // Thinking/Generating
+    sendEvent("step", {
+      id: "thinking",
+      name: "Thinking",
+      description: "Analyzing query and generating response",
+      status: "active",
+      timestamp: new Date().toISOString(),
+    });
+
+    // Get AI response
+    const groqService = (await import("../services/groqService.js")).default;
+    const aiResponseData = await groqService.getAIResponseWithFlowData(
+      userMessage,
+      conversationHistory,
+    );
+
+    sendEvent("step", {
+      id: "thinking",
+      status: "completed",
+      timestamp: new Date().toISOString(),
+      data: { model: aiResponseData.model, tokens: aiResponseData.tokens },
+    });
+
+    // Update response data with contexts
+    aiResponseData.ragUsed = !!ragContext;
+    aiResponseData.ragContext = ragContext;
+    aiResponseData.webSearchUsed = !!webSearchContext;
+    aiResponseData.webSearchContext = webSearchContext;
+
+    return aiResponseData;
+  }
+
   // Handle empty message input
   private handleEmptyMessage(res: Response, conversationId: string): void {
     res.json({

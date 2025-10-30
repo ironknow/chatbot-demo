@@ -1,4 +1,11 @@
-import React, { useRef, useState, useCallback, useMemo } from "react";
+/* eslint-disable no-console */
+import React, {
+  useRef,
+  useState,
+  useCallback,
+  useMemo,
+  useEffect,
+} from "react";
 import { Box, Flex } from "@chakra-ui/react";
 import {
   BrowserRouter as Router,
@@ -18,6 +25,7 @@ import {
   Sidebar,
   ErrorBoundary,
   DataFlowVisualizer,
+  ProcessingStepsIndicator,
 } from "@/components";
 import { THEME_CONFIG } from "@/theme/constants";
 import { useThemeColors } from "@/theme/colors";
@@ -28,6 +36,8 @@ const Chat: React.FC = () => {
   const { conversationId } = useParams<{ conversationId: string }>();
   const [showFlowVisualizer, setShowFlowVisualizer] = useState(false);
   const colors = useThemeColors();
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   console.log("💬 Chat component mounted with conversationId:", conversationId);
 
@@ -47,9 +57,18 @@ const Chat: React.FC = () => {
     currentStep,
     flowSteps,
     isFlowProcessing,
+    processingSteps,
   } = useChat();
 
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  // Scroll to bottom when messages, typing state, or processing steps change
+  useEffect(() => {
+    if (messagesEndRef.current && scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTo({
+        top: scrollContainerRef.current.scrollHeight,
+        behavior: "smooth",
+      });
+    }
+  }, [messages, isTyping, processingSteps]);
 
   const handleSendMessage = useCallback(async () => {
     if (!input.trim() || isTyping || isLoading) return;
@@ -68,7 +87,6 @@ const Chat: React.FC = () => {
           />
         ))}
         {isTyping && <TypingIndicator />}
-        <div ref={messagesEndRef} />
       </>
     ),
     [messages, isTyping],
@@ -87,6 +105,7 @@ const Chat: React.FC = () => {
         />
 
         <Box
+          ref={scrollContainerRef}
           flex="1"
           overflowY="auto"
           bg={colors.background.primary}
@@ -95,6 +114,13 @@ const Chat: React.FC = () => {
         >
           <Box maxW={THEME_CONFIG.MAX_CONTENT_WIDTH} mx="auto">
             {messageList}
+            {processingSteps.length > 0 && (
+              <ProcessingStepsIndicator
+                steps={processingSteps}
+                isVisible={isTyping || isLoading}
+              />
+            )}
+            <div ref={messagesEndRef} />
           </Box>
         </Box>
 
@@ -191,6 +217,8 @@ const HomePage: React.FC = () => {
   const navigate = useNavigate();
   const [showFlowVisualizer, setShowFlowVisualizer] = useState(false);
   const colors = useThemeColors();
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   console.log("🏠 HomePage component mounted");
 
@@ -221,9 +249,18 @@ const HomePage: React.FC = () => {
     currentStep,
     flowSteps,
     isFlowProcessing,
+    processingSteps,
   } = useChat(handleConversationComplete);
 
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  // Scroll to bottom when messages, typing state, or processing steps change
+  useEffect(() => {
+    if (messagesEndRef.current && scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTo({
+        top: scrollContainerRef.current.scrollHeight,
+        behavior: "smooth",
+      });
+    }
+  }, [messages, isTyping, processingSteps]);
 
   const handleSendMessage = useCallback(async () => {
     if (!input.trim() || isTyping || isLoading) return;
@@ -242,7 +279,6 @@ const HomePage: React.FC = () => {
           />
         ))}
         {isTyping && <TypingIndicator />}
-        <div ref={messagesEndRef} />
       </>
     ),
     [messages, isTyping],
@@ -261,6 +297,7 @@ const HomePage: React.FC = () => {
         />
 
         <Box
+          ref={scrollContainerRef}
           flex="1"
           overflowY="auto"
           bg={colors.background.primary}
@@ -269,6 +306,13 @@ const HomePage: React.FC = () => {
         >
           <Box maxW={THEME_CONFIG.MAX_CONTENT_WIDTH} mx="auto">
             {messageList}
+            {processingSteps.length > 0 && (
+              <ProcessingStepsIndicator
+                steps={processingSteps}
+                isVisible={isTyping || isLoading}
+              />
+            )}
+            <div ref={messagesEndRef} />
           </Box>
         </Box>
 

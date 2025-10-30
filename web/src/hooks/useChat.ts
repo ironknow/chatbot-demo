@@ -1,13 +1,20 @@
+/* eslint-disable no-console */
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams } from "react-router-dom";
-import { Message, UseChatReturn, Conversation, FlowData } from "@/types";
+import {
+  Message,
+  UseChatReturn,
+  Conversation,
+  FlowData,
+  ChatResponse,
+} from "@/types";
 import { chatService } from "@/services/chatService";
 import { THEME_CONFIG } from "@/theme/constants";
 import { useFlowTracking } from "./useFlowTracking";
 import { useChatContext } from "@/contexts";
 
 export const useChat = (
-  onConversationComplete?: (conversationId: string) => void,
+  onConversationComplete?: (_conversationId: string) => void,
 ): UseChatReturn => {
   const { conversationId: urlConversationId } = useParams<{
     conversationId: string;
@@ -34,6 +41,16 @@ export const useChat = (
   const [currentConversation, setCurrentConversation] =
     useState<Conversation | null>(null);
   const [flowData, setFlowData] = useState<FlowData | null>(null);
+  const [processingSteps, setProcessingSteps] = useState<
+    Array<{
+      id: string;
+      name: string;
+      description: string;
+      status: "pending" | "active" | "completed" | "error" | "skipped";
+      timestamp?: string;
+      data?: any;
+    }>
+  >([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const isNewConversationRef = useRef(false);
   const initializedRef = useRef<string | false>(false);
@@ -282,62 +299,109 @@ export const useChat = (
       conversationId: currentConversationId,
     });
 
+    // Clear previous processing steps
+    setProcessingSteps([]);
+
     try {
-      const response = await chatService.sendMessage(
+      // Use streaming API for real-time updates
+      await (chatService as any).sendMessageStream(
         input.trim(),
         currentConversationId,
+        {
+          onStep: (step: any) => {
+            setProcessingSteps((prev) => {
+              const existingIndex = prev.findIndex((s) => s.id === step.id);
+              if (existingIndex >= 0) {
+                // Update existing step
+                const updated = [...prev];
+                updated[existingIndex] = {
+                  ...updated[existingIndex],
+                  ...step,
+                };
+                return updated;
+              } else {
+                // Add new step
+                return [...prev, step];
+              }
+            });
+          },
+          onComplete: (response: ChatResponse) => {
+            // Process flow data from backend
+            if (response.flowData) {
+              setFlowData(response.flowData);
+            }
+
+            // Complete API call step
+            completeStep("api-call");
+
+            // Simulate typing delay for more realistic feel
+            setTimeout(
+              async () => {
+                const botMsg: Message = {
+                  sender: "bot",
+                  text: response.reply,
+                  timestamp: response.timestamp || new Date().toISOString(),
+                };
+
+                setMessages((prev) => [...prev, botMsg]);
+                setIsTyping(false);
+                setIsLoading(false);
+
+                // Clear processing steps after a short delay
+                setTimeout(() => {
+                  setProcessingSteps([]);
+                }, 1000);
+
+                // Complete UI update step
+                setStep("ui-update", { message: response.reply });
+                completeStep("ui-update");
+                completeFlow();
+
+                // Call the callback if this was a new conversation
+                if (isNewConversationRef.current && onConversationComplete) {
+                  console.log(
+                    "🚀 useChat: Calling onConversationComplete for:",
+                    currentConversationId,
+                  );
+                  onConversationComplete(currentConversationId);
+                  isNewConversationRef.current = false; // Reset the flag
+                }
+              },
+              THEME_CONFIG.TYPING_DELAY_MIN +
+                Math.random() *
+                  (THEME_CONFIG.TYPING_DELAY_MAX -
+                    THEME_CONFIG.TYPING_DELAY_MIN),
+            );
+          },
+          onError: (error: Error) => {
+            console.error("Stream error:", error);
+            // Fallback to regular API if streaming fails
+            return chatService
+              .sendMessage(input.trim(), currentConversationId)
+              .then((response) => {
+                if (response.flowData) {
+                  setFlowData(response.flowData);
+                }
+                const botMsg: Message = {
+                  sender: "bot",
+                  text: response.reply,
+                  timestamp: response.timestamp || new Date().toISOString(),
+                };
+                setMessages((prev) => [...prev, botMsg]);
+                setIsTyping(false);
+                setIsLoading(false);
+                setProcessingSteps([]);
+                completeFlow();
+              })
+              .catch((fallbackErr) => {
+                throw fallbackErr;
+              });
+          },
+        },
       );
 
       // Complete API call step
       completeStep("api-call");
-
-      // Process flow data from backend
-      if (response.flowData) {
-        setFlowData(response.flowData);
-
-        // Update flow steps with backend data
-        response.flowData.steps.forEach((step) => {
-          setStep(step.id, step.data);
-          if (step.status === "completed") {
-            completeStep(step.id, step.duration);
-          } else if (step.status === "error") {
-            errorStep(step.id, step.data?.error || "Unknown error");
-          }
-        });
-      }
-
-      // Simulate typing delay for more realistic feel
-      setTimeout(
-        async () => {
-          const botMsg: Message = {
-            sender: "bot",
-            text: response.reply,
-            timestamp: response.timestamp || new Date().toISOString(),
-          };
-
-          setMessages((prev) => [...prev, botMsg]);
-          setIsTyping(false);
-          setIsLoading(false);
-
-          // Complete UI update step
-          setStep("ui-update", { message: response.reply });
-          completeStep("ui-update");
-          completeFlow();
-
-          // Call the callback if this was a new conversation
-          if (isNewConversationRef.current && onConversationComplete) {
-            console.log(
-              "🚀 useChat: Calling onConversationComplete for:",
-              currentConversationId,
-            );
-            onConversationComplete(currentConversationId);
-            isNewConversationRef.current = false; // Reset the flag
-          }
-        },
-        THEME_CONFIG.TYPING_DELAY_MIN +
-          Math.random() *
-            (THEME_CONFIG.TYPING_DELAY_MAX - THEME_CONFIG.TYPING_DELAY_MIN),
-      );
     } catch (err) {
       console.error("Chat error:", err);
 
@@ -360,6 +424,7 @@ export const useChat = (
         setIsTyping(false);
         setIsLoading(false);
         setError(errorMsg);
+        setProcessingSteps([]);
         completeFlow();
       }, THEME_CONFIG.TYPING_DELAY_MIN);
     }
@@ -437,6 +502,8 @@ export const useChat = (
     flowSteps,
     isFlowProcessing,
     clearFlow,
+    // Processing steps for real-time UI
+    processingSteps,
     // Conversations loading state
     conversationsLoading,
   };
