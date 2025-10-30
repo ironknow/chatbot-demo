@@ -10,6 +10,7 @@ import {
   FileAttachment,
 } from "@/types";
 import { chatService } from "@/services/chatService";
+import { useToast } from "@chakra-ui/react";
 import { THEME_CONFIG } from "@/theme/constants";
 import { useFlowTracking } from "./useFlowTracking";
 import { useChatContext } from "@/contexts";
@@ -20,10 +21,7 @@ export const useChat = (
   const { conversationId: urlConversationId } = useParams<{
     conversationId: string;
   }>();
-  console.log(
-    "🎯 useChat: Hook initialized with urlConversationId:",
-    urlConversationId,
-  );
+
   const {
     conversations,
     conversationsLoading,
@@ -56,6 +54,7 @@ export const useChat = (
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const isNewConversationRef = useRef(false);
   const initializedRef = useRef<string | false>(false);
+  const toast = useToast();
 
   // Flow tracking hook
   const {
@@ -84,29 +83,23 @@ export const useChat = (
       // Prevent multiple API calls for the same conversation
       const loadingKey = `loading-${conversationId}`;
       if (initializedRef.current === loadingKey) {
-        console.log(
-          "⚠️ useChat: Already loading conversation, skipping:",
-          conversationId,
-        );
         return;
       }
 
       try {
-        console.log("Loading messages for conversation:", conversationId);
         initializedRef.current = loadingKey;
         // Don't set isLoading to true - keep the list visible
         setError(null);
 
         // Load messages for the specified conversation
         const response = await chatService.getConversation(conversationId);
-        console.log("Loaded messages:", response.messages.length);
+
         setMessages(response.messages);
 
         // Find and set current conversation
         const conversation = conversations.find((c) => c.id === conversationId);
         setCurrentConversation(conversation || null);
       } catch (err) {
-        console.error("Failed to load conversation messages:", err);
         // If conversation doesn't exist, show empty state instead of error
         setMessages([]);
         setCurrentConversation(null);
@@ -125,14 +118,9 @@ export const useChat = (
     // Prevent multiple initializations for the same conversation
     const effectKey = `url-${urlConversationId}`;
     if (initializedRef.current === effectKey) {
-      console.log(
-        "⚠️ useChat: Already processed URL change, skipping:",
-        urlConversationId,
-      );
       return;
     }
 
-    console.log("Loading conversation from URL:", urlConversationId);
     initializedRef.current = effectKey;
     setConversationId(urlConversationId);
     // Load the conversation messages
@@ -148,17 +136,9 @@ export const useChat = (
     // Prevent multiple initializations for the same conversation
     const effectKey = `${urlConversationId}-${conversations.length}`;
     if (initializedRef.current === effectKey) {
-      console.log(
-        "⚠️ useChat: Already loaded conversation, skipping:",
-        urlConversationId,
-      );
       return;
     }
 
-    console.log(
-      "Conversations loaded, checking if URL conversation exists:",
-      urlConversationId,
-    );
     initializedRef.current = effectKey;
 
     const conversationExists = conversations.some(
@@ -167,7 +147,6 @@ export const useChat = (
     if (conversationExists) {
       loadConversationMessages(urlConversationId);
     } else {
-      console.log("Conversation not found in list, loading directly from API");
       loadConversationMessages(urlConversationId);
     }
   }, [urlConversationId, conversations, loadConversationMessages]);
@@ -190,7 +169,6 @@ export const useChat = (
         );
         setCurrentConversation(conversation || null);
       } catch (err) {
-        console.error("Failed to switch conversation:", err);
         setError("Failed to load conversation");
       } finally {
         setIsLoading(false);
@@ -222,17 +200,33 @@ export const useChat = (
       setMessages([]);
       setCurrentConversation(null);
       setError(null);
+      toast({
+        title: "Conversation created",
+        description: "You can start chatting now.",
+        status: "success",
+        duration: 2500,
+        isClosable: true,
+        position: "bottom-right",
+        containerStyle: { zIndex: 2000 },
+      });
 
       // Refresh conversations list to include the new conversation
       await refreshConversations();
 
       return newConversationId;
     } catch (err) {
-      console.error("Error creating conversation:", err);
       setError("Failed to create new conversation");
+      toast({
+        title: "Failed to create conversation",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+        position: "bottom-right",
+        containerStyle: { zIndex: 2000 },
+      });
       return null;
     }
-  }, [refreshConversations]);
+  }, [refreshConversations, toast]);
 
   const sendMessage = useCallback(async () => {
     if (!input.trim() || isTyping || isLoading) return;
@@ -270,7 +264,6 @@ export const useChat = (
           _count: { messages: 0 },
         });
       } catch (err) {
-        console.error("Error creating conversation:", err);
         setError("Failed to create new conversation");
         setIsLoading(false);
         setIsTyping(false);
@@ -288,6 +281,17 @@ export const useChat = (
     setMessages((prev) => [...prev, userMsg]);
     setInput("");
     setFiles([]); // Clear files after sending
+    if (files.length > 0) {
+      toast({
+        title: "Files attached",
+        description: `${files.length} file(s) included with your message`,
+        status: "info",
+        duration: 2500,
+        isClosable: true,
+        position: "bottom-right",
+        containerStyle: { zIndex: 2000 },
+      });
+    }
     setIsTyping(true);
     setError(null);
     setIsLoading(true);
@@ -399,6 +403,15 @@ export const useChat = (
           },
           onError: (error: Error) => {
             console.error("Stream error:", error);
+            toast({
+              title: "Realtime stream issue",
+              description: "Falling back to standard request...",
+              status: "warning",
+              duration: 3000,
+              isClosable: true,
+              position: "bottom-right",
+              containerStyle: { zIndex: 2000 },
+            });
             // Fallback to regular API if streaming fails
             return chatService
               .sendMessage(
@@ -420,6 +433,14 @@ export const useChat = (
                 setIsLoading(false);
                 setProcessingSteps([]);
                 completeFlow();
+                toast({
+                  title: "Response received",
+                  status: "success",
+                  duration: 2000,
+                  isClosable: true,
+                  position: "bottom-right",
+                  containerStyle: { zIndex: 2000 },
+                });
               })
               .catch((fallbackErr) => {
                 throw fallbackErr;
@@ -432,8 +453,6 @@ export const useChat = (
       // Complete API call step
       completeStep("api-call");
     } catch (err) {
-      console.error("Chat error:", err);
-
       // Mark API call as error
       errorStep(
         "api-call",
@@ -458,6 +477,7 @@ export const useChat = (
       }, THEME_CONFIG.TYPING_DELAY_MIN);
     }
   }, [
+    toast,
     input,
     isTyping,
     isLoading,
@@ -473,25 +493,26 @@ export const useChat = (
   ]);
 
   const clearConversation = useCallback(async () => {
-    console.log("🗑️ useChat: clearConversation called for:", conversationId);
     try {
       await chatService.clearConversation(conversationId);
       setMessages([]);
       setError(null);
+      toast({
+        title: "Conversation cleared",
+        status: "info",
+        duration: 2000,
+        isClosable: true,
+        position: "bottom-right",
+        containerStyle: { zIndex: 2000 },
+      });
       // Refresh conversations list
       try {
-        console.log(
-          "🔄 useChat: Calling refreshConversations from clearConversation",
-        );
         await refreshConversations();
-      } catch (err) {
-        console.error("Failed to refresh conversations:", err);
-      }
+      } catch (err) {}
     } catch (err) {
-      console.error("Failed to clear conversation:", err);
       setError("Failed to clear conversation. Please try again.");
     }
-  }, [conversationId, refreshConversations]);
+  }, [conversationId, refreshConversations, toast]);
 
   const retryLastMessage = useCallback(() => {
     if (messages.length > 0 && error) {

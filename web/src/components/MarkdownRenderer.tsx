@@ -1,7 +1,6 @@
 import React, { useMemo } from "react";
 import {
   Box,
-  Text,
   Code,
   Link,
   Heading,
@@ -29,10 +28,12 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content }) => {
   // Custom components for markdown rendering with theme styling
   const markdownComponents = useMemo(
     () => ({
+      // Use a div-like container for paragraphs to avoid invalid nesting
+      // (e.g., <pre> cannot appear inside <p>)
       p: ({ children }: any) => (
-        <Text fontSize="md" lineHeight="1.6" color={colors.text.primary} mb={3}>
+        <Box fontSize="md" lineHeight="1.6" color={colors.text.primary} mb={3}>
           {children}
-        </Text>
+        </Box>
       ),
       h1: ({ children }: any) => (
         <Heading as="h1" size="xl" color={colors.text.primary} mb={4} mt={6}>

@@ -14,6 +14,7 @@ import {
   VStack,
   Icon,
   Tooltip,
+  useToast,
 } from "@chakra-ui/react";
 import {
   MdSend,
@@ -79,6 +80,7 @@ const ChatInput: React.FC<ChatInputProps> = memo(
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [isDragOver, setIsDragOver] = useState(false);
     const colors = useThemeColors();
+    const toast = useToast();
 
     const handleKeyDown = useCallback(
       (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -98,11 +100,15 @@ const ChatInput: React.FC<ChatInputProps> = memo(
         filesArray.forEach((file) => {
           // Check file size
           if (file.size > MAX_FILE_SIZE) {
-            // show notification
-            // toast({
-            //   title: `File ${file.name} exceeds maximum size of 10MB`,
-            //   status: "error",
-            // });
+            toast({
+              title: "File too large",
+              description: `${file.name} exceeds maximum size of 10MB`,
+              status: "warning",
+              duration: 3000,
+              isClosable: true,
+              position: "bottom-right",
+              containerStyle: { zIndex: 2000 },
+            });
             return;
           }
 
@@ -130,7 +136,7 @@ const ChatInput: React.FC<ChatInputProps> = memo(
 
         return processedFiles;
       },
-      [files, onFilesChange],
+      [files, onFilesChange, toast],
     );
 
     const handleFileSelect = useCallback(

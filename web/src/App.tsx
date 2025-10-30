@@ -33,13 +33,10 @@ import { ChatProvider, useChatContext } from "@/contexts";
 
 // Chat component that handles individual conversations
 const Chat: React.FC = () => {
-  const { conversationId } = useParams<{ conversationId: string }>();
   const [showFlowVisualizer, setShowFlowVisualizer] = useState(false);
   const colors = useThemeColors();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-
-  console.log("💬 Chat component mounted with conversationId:", conversationId);
 
   const {
     messages,
@@ -224,14 +221,8 @@ const HomePage: React.FC = () => {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  console.log("🏠 HomePage component mounted");
-
   const handleConversationComplete = useCallback(
     (conversationId: string) => {
-      console.log(
-        "🚀 HomePage: Conversation completed, navigating to:",
-        conversationId,
-      );
       navigate(`/chat/${conversationId}`);
     },
     [navigate],
