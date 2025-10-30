@@ -28,6 +28,7 @@ export interface FlowData {
   steps: FlowStep[];
   totalDuration: number;
   ragUsed?: boolean;
+  webSearchUsed?: boolean;
   model?: string;
   error?: string;
 }
@@ -65,6 +66,8 @@ export interface GroqResponse {
   response: string | null;
   ragUsed: boolean;
   ragContext?: any;
+  webSearchUsed?: boolean;
+  webSearchContext?: any;
   model: string;
   tokens?: number | null;
   processingSteps?: any[];

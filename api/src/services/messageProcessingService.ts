@@ -135,6 +135,7 @@ export class MessageProcessingService {
         totalDuration,
         {
           ragUsed: aiResponseData.ragUsed,
+          webSearchUsed: aiResponseData.webSearchUsed,
           model: aiResponseData.model,
         },
       ),

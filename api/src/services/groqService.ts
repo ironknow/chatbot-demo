@@ -1,6 +1,7 @@
 import fetch from "node-fetch";
 import { groqConfig, systemPrompt } from "../config/groq.js";
 import ragService from "./ragService.js";
+import webSearchService from "./webSearchService.js";
 import type { Message, GroqResponse } from "../types/index.js";
 
 interface GroqMessage {
@@ -52,7 +53,7 @@ export class GroqService {
     }));
   }
 
-  // Get AI response from Groq with RAG enhancement
+  // Get AI response from Groq with RAG and web search enhancement
   async getAIResponse(
     userMessage: string,
     conversationHistory: Message[] = [],
@@ -87,11 +88,35 @@ export class GroqService {
         );
       }
 
-      // Build enhanced system prompt with RAG context
+      // Try to get web search context
+      let webSearchContext: { context: string; results: any[] } | null = null;
+
+      try {
+        if (webSearchService.shouldSearch(userMessage)) {
+          console.log("Web search triggered, enhancing response...");
+          webSearchContext =
+            await webSearchService.getContextualWebSearch(userMessage);
+        }
+      } catch (webSearchError) {
+        console.warn(
+          "Web search failed, continuing without web context:",
+          (webSearchError as Error).message,
+        );
+      }
+
+      // Build enhanced system prompt with RAG and web search context
       let enhancedSystemPrompt = systemPrompt;
 
       if (ragContext) {
-        enhancedSystemPrompt += `\n\nIMPORTANT: Use the following context from your knowledge base to provide accurate, detailed answers. If the context doesn't contain relevant information, say so clearly.\n\nCONTEXT:\n${ragContext.context}\n\nPlease provide a helpful response based on this context and the user's question.`;
+        enhancedSystemPrompt += `\n\nIMPORTANT: Use the following context from your knowledge base to provide accurate, detailed answers. If the context doesn't contain relevant information, say so clearly.\n\nKNOWLEDGE BASE CONTEXT:\n${ragContext.context}\n\n`;
+      }
+
+      if (webSearchContext) {
+        enhancedSystemPrompt += `\n\nCURRENT WEB INFORMATION: The following information was retrieved from web sources to provide up-to-date information. Use this to supplement your knowledge, especially for current events, recent developments, or real-time data.\n\nWEB SEARCH RESULTS:\n${webSearchContext.context}\n\n`;
+      }
+
+      if (ragContext || webSearchContext) {
+        enhancedSystemPrompt += `\nPlease provide a helpful, accurate response based on the provided context(s) and the user's question. If the context doesn't fully answer the question, acknowledge what information is available and what isn't.`;
       }
 
       // Format the conversation history
@@ -129,7 +154,6 @@ export class GroqService {
       }
 
       const data = (await response.json()) as GroqAPIResponse;
-      console.log("Groq API Response:", data); // Debug log
 
       if (!data.choices || !data.choices[0] || !data.choices[0].message) {
         console.error("Unexpected response structure:", data);
@@ -153,6 +177,8 @@ export class GroqService {
       response: null,
       ragUsed: false,
       ragContext: null,
+      webSearchUsed: false,
+      webSearchContext: null,
       model: this.model,
       tokens: null,
       processingSteps: [],
@@ -219,7 +245,66 @@ export class GroqService {
         };
       }
 
-      // Step 2: Groq API Processing
+      // Step 2: Web Search Processing
+      const webSearchStartTime = Date.now();
+      const webSearchStep: ProcessingStep = {
+        id: "web-search-processing",
+        name: "Web Search Processing",
+        description:
+          "Checking if web search is needed and retrieving current information",
+        status: "active",
+        timestamp: new Date().toISOString(),
+      };
+      flowData.processingSteps?.push(webSearchStep);
+
+      let webSearchContext: { context: string; results: any[] } | null = null;
+
+      try {
+        // Check if web search should be performed for this query
+        const shouldSearch = webSearchService.shouldSearch(userMessage);
+
+        if (shouldSearch) {
+          console.log(
+            "Web search triggered, enhancing response with current information...",
+          );
+
+          // Get contextual web search results
+          webSearchContext =
+            await webSearchService.getContextualWebSearch(userMessage);
+
+          if (webSearchContext) {
+            flowData.webSearchUsed = true;
+            flowData.webSearchContext = webSearchContext;
+          }
+        } else {
+          console.log("Web search not needed for this query");
+        }
+      } catch (webSearchError) {
+        console.warn(
+          "Web search failed, continuing without web context:",
+          (webSearchError as Error).message,
+        );
+        if (webSearchStep) {
+          webSearchStep.status = "error";
+          webSearchStep.data = { error: (webSearchError as Error).message };
+        }
+      }
+
+      const webSearchDuration = Date.now() - webSearchStartTime;
+      if (webSearchStep) {
+        webSearchStep.status =
+          webSearchStep.status === "error" ? "error" : "completed";
+        webSearchStep.duration = webSearchDuration;
+        webSearchStep.data = {
+          ...webSearchStep.data,
+          searchPerformed: !!webSearchContext,
+          webSearchUsed: flowData.webSearchUsed,
+          processingTime: webSearchDuration,
+          resultsCount: webSearchContext?.results?.length || 0,
+        };
+      }
+
+      // Step 3: Groq API Processing
       const groqStartTime = Date.now();
       const groqStep: ProcessingStep = {
         id: "groq-processing",
@@ -230,11 +315,22 @@ export class GroqService {
       };
       flowData.processingSteps?.push(groqStep);
 
-      // Build enhanced system prompt with RAG context
+      // Build enhanced system prompt with RAG and web search context
       let enhancedSystemPrompt = systemPrompt;
 
+      // Add RAG context if available
       if (ragContext) {
-        enhancedSystemPrompt += `\n\nIMPORTANT: Use the following context from your knowledge base to provide accurate, detailed answers. If the context doesn't contain relevant information, say so clearly.\n\nCONTEXT:\n${ragContext.context}\n\nPlease provide a helpful response based on this context and the user's question.`;
+        enhancedSystemPrompt += `\n\nIMPORTANT: Use the following context from your knowledge base to provide accurate, detailed answers. If the context doesn't contain relevant information, say so clearly.\n\nKNOWLEDGE BASE CONTEXT:\n${ragContext.context}\n\n`;
+      }
+
+      // Add web search context if available
+      if (webSearchContext) {
+        enhancedSystemPrompt += `\n\nCURRENT WEB INFORMATION: The following information was retrieved from web sources to provide up-to-date information. Use this to supplement your knowledge, especially for current events, recent developments, or real-time data.\n\nWEB SEARCH RESULTS:\n${webSearchContext.context}\n\n`;
+      }
+
+      // Final instruction
+      if (ragContext || webSearchContext) {
+        enhancedSystemPrompt += `\nPlease provide a helpful, accurate response based on the provided context(s) and the user's question. If the context doesn't fully answer the question, acknowledge what information is available and what isn't.`;
       }
 
       // Format the conversation history
@@ -287,7 +383,6 @@ export class GroqService {
       }
 
       const data = (await response.json()) as GroqAPIResponse;
-      console.log("Groq API Response:", data); // Debug log
 
       if (!data.choices || !data.choices[0] || !data.choices[0].message) {
         console.error("Unexpected response structure:", data);
@@ -347,12 +442,15 @@ export class GroqService {
     try {
       const ragStatus = await ragService.getStatus();
 
+      const webSearchStatus = await webSearchService.getStatus();
+
       return {
         configured: this.isConfigured(),
         model: this.model,
         maxTokens: this.maxTokens,
         temperature: this.temperature,
         rag: ragStatus,
+        webSearch: webSearchStatus,
       };
     } catch (error) {
       return {
@@ -361,6 +459,7 @@ export class GroqService {
         maxTokens: this.maxTokens,
         temperature: this.temperature,
         rag: { available: false, error: (error as Error).message },
+        webSearch: { available: false, error: (error as Error).message },
       };
     }
   }
