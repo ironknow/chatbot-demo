@@ -173,6 +173,12 @@ export class GroqService {
     conversationHistory: Message[] = [],
     providedRagContext?: { context: string; sources: any[] } | null,
     providedWebSearchContext?: { context: string; results: any[] } | null,
+    attachments?: Array<{
+      name: string;
+      type: string;
+      size: number;
+      content?: string;
+    }>,
   ): Promise<GroqResponse> {
     const startTime = Date.now();
     const flowData: GroqResponse = {
@@ -338,8 +344,29 @@ export class GroqService {
       };
       flowData.processingSteps?.push(groqStep);
 
-      // Build enhanced system prompt with RAG and web search context
+      // Build enhanced system prompt with RAG, web search, and attachments context
       let enhancedSystemPrompt = systemPrompt;
+
+      // Add attachments context if provided
+      if (attachments && attachments.length > 0) {
+        const formatted = attachments
+          .map(
+            (
+              a: { name: string; type: string; size: number; content?: string },
+              idx: number,
+            ) => {
+              const header = `[Attachment ${idx + 1}] ${a.name} (${a.type}, ${Math.round(
+                a.size / 1024,
+              )} KB)`;
+              const body = a.content
+                ? `\nContent (truncated):\n${a.content.substring(0, 4000)}`
+                : "";
+              return `${header}${body}`;
+            },
+          )
+          .join("\n\n");
+        enhancedSystemPrompt += `\n\nATTACHMENTS PROVIDED BY USER:\n${formatted}\n`;
+      }
 
       // Add RAG context if available
       if (ragContext) {

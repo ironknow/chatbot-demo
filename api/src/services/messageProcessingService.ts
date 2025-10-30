@@ -40,6 +40,12 @@ export class MessageProcessingService {
     userMessage: string,
     conversationHistory: Message[],
     flowSteps: FlowStep[],
+    attachments?: Array<{
+      name: string;
+      type: string;
+      size: number;
+      content?: string;
+    }>,
   ): Promise<GroqResponse> {
     const aiStartTime = Date.now();
 
@@ -51,6 +57,9 @@ export class MessageProcessingService {
     const aiResponseData = await groqService.getAIResponseWithFlowData(
       userMessage,
       conversationHistory,
+      undefined,
+      undefined,
+      attachments,
     );
     const aiDuration = Date.now() - aiStartTime;
 
@@ -100,6 +109,12 @@ export class MessageProcessingService {
     conversationId: string,
     flowSteps: FlowStep[],
     startTime: number,
+    attachments?: Array<{
+      name: string;
+      type: string;
+      size: number;
+      content?: string;
+    }>,
   ): Promise<ChatResponse> {
     // Step 1: Backend Processing
     const conversationHistory = await this.processBackendStep(
@@ -113,6 +128,7 @@ export class MessageProcessingService {
       userMessage,
       conversationHistory,
       flowSteps,
+      attachments,
     );
 
     // Step 3: Response Return

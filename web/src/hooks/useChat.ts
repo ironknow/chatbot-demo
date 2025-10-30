@@ -7,6 +7,7 @@ import {
   Conversation,
   FlowData,
   ChatResponse,
+  FileAttachment,
 } from "@/types";
 import { chatService } from "@/services/chatService";
 import { THEME_CONFIG } from "@/theme/constants";
@@ -32,6 +33,7 @@ export const useChat = (
   } = useChatContext();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState<string>("");
+  const [files, setFiles] = useState<FileAttachment[]>([]);
   const [isTyping, setIsTyping] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -280,10 +282,12 @@ export const useChat = (
       sender: "user",
       text: input.trim(),
       timestamp: new Date().toISOString(),
+      attachments: files.length > 0 ? files : undefined,
     };
 
     setMessages((prev) => [...prev, userMsg]);
     setInput("");
+    setFiles([]); // Clear files after sending
     setIsTyping(true);
     setError(null);
     setIsLoading(true);
@@ -303,6 +307,26 @@ export const useChat = (
     setProcessingSteps([]);
 
     try {
+      // Build attachments payload (read text content where possible)
+      const attachmentsPayload = await Promise.all(
+        files.map(async (f) => {
+          let content: string | undefined;
+          if (f.file.type.startsWith("text/")) {
+            content = await new Promise<string>((resolve) => {
+              const reader = new FileReader();
+              reader.onload = () => resolve((reader.result as string) || "");
+              reader.readAsText(f.file);
+            });
+          }
+          return {
+            name: f.file.name,
+            type: f.file.type,
+            size: f.file.size,
+            content,
+          };
+        }),
+      );
+
       // Use streaming API for real-time updates
       await (chatService as any).sendMessageStream(
         input.trim(),
@@ -377,7 +401,11 @@ export const useChat = (
             console.error("Stream error:", error);
             // Fallback to regular API if streaming fails
             return chatService
-              .sendMessage(input.trim(), currentConversationId)
+              .sendMessage(
+                input.trim(),
+                currentConversationId,
+                attachmentsPayload,
+              )
               .then((response) => {
                 if (response.flowData) {
                   setFlowData(response.flowData);
@@ -398,6 +426,7 @@ export const useChat = (
               });
           },
         },
+        attachmentsPayload,
       );
 
       // Complete API call step
@@ -440,6 +469,7 @@ export const useChat = (
     completeFlow,
     addConversation,
     onConversationComplete,
+    files,
   ]);
 
   const clearConversation = useCallback(async () => {
@@ -504,6 +534,9 @@ export const useChat = (
     clearFlow,
     // Processing steps for real-time UI
     processingSteps,
+    // File attachments
+    files,
+    setFiles,
     // Conversations loading state
     conversationsLoading,
   };

@@ -27,7 +27,8 @@ export class ChatController {
 
   // Main chat endpoint
   async sendMessage(req: Request, res: Response): Promise<void> {
-    const { message, conversationId } = req.body;
+    const { message, conversationId, attachments } = req.body as any;
+
     const userMessage = message?.trim() || "";
     const startTime = Date.now();
 
@@ -47,6 +48,7 @@ export class ChatController {
         conversationId || "",
         flowSteps,
         startTime,
+        attachments,
       );
 
       res.json(result);
@@ -73,7 +75,8 @@ export class ChatController {
 
   // Main chat endpoint with SSE streaming
   async sendMessageStream(req: Request, res: Response): Promise<void> {
-    const { message, conversationId } = req.body;
+    const { message, conversationId, attachments } = req.body as any;
+
     const userMessage = message?.trim() || "";
     const startTime = Date.now();
 
@@ -138,6 +141,7 @@ export class ChatController {
         userMessage,
         conversationHistory,
         sendEvent,
+        attachments,
       );
 
       sendEvent("step", {
@@ -204,6 +208,12 @@ export class ChatController {
     userMessage: string,
     conversationHistory: any[],
     sendEvent: (event: string, data: any) => void,
+    attachments?: Array<{
+      name: string;
+      type: string;
+      size: number;
+      content?: string;
+    }>,
   ): Promise<any> {
     // RAG Processing
     sendEvent("step", {
@@ -276,6 +286,7 @@ export class ChatController {
       conversationHistory,
       ragContext, // Pass the RAG context we already fetched
       webSearchContext, // Pass the web search context we already fetched
+      attachments,
     );
 
     sendEvent("step", {

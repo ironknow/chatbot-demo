@@ -80,6 +80,50 @@ const ChatMessage: React.FC<ChatMessageProps> = memo(
 
           {/* Message Content */}
           <Box flex="1" wordBreak="break-word">
+            {/* File Attachments */}
+            {message.attachments && message.attachments.length > 0 && (
+              <Box mb={3}>
+                <HStack spacing={2} flexWrap="wrap">
+                  {message.attachments.map((attachment) => (
+                    <Box
+                      key={attachment.id}
+                      p={2}
+                      bg={colors.background.secondary}
+                      borderRadius="md"
+                      border="1px solid"
+                      borderColor={colors.border.primary}
+                      maxW="300px"
+                    >
+                      {attachment.type === "image" && attachment.preview && (
+                        <Box mb={2}>
+                          <img
+                            src={attachment.preview}
+                            alt={attachment.file.name}
+                            style={{
+                              width: "100%",
+                              maxHeight: "200px",
+                              objectFit: "cover",
+                              borderRadius: "4px",
+                            }}
+                          />
+                        </Box>
+                      )}
+                      <Text
+                        fontSize="sm"
+                        fontWeight="medium"
+                        color={colors.text.primary}
+                      >
+                        {attachment.file.name}
+                      </Text>
+                      <Text fontSize="xs" color={colors.text.tertiary}>
+                        {(attachment.file.size / 1024).toFixed(1)} KB
+                      </Text>
+                    </Box>
+                  ))}
+                </HStack>
+              </Box>
+            )}
+
             {isUser ? (
               <Text
                 fontSize="md"

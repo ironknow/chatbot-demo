@@ -29,6 +29,12 @@ class ChatServiceImpl implements ChatService {
   async sendMessage(
     message: string,
     conversationId: string,
+    attachments?: Array<{
+      name: string;
+      type: string;
+      size: number;
+      content?: string;
+    }>,
   ): Promise<ChatResponse> {
     try {
       const response: AxiosResponse<ChatResponse> = await axios.post(
@@ -36,6 +42,7 @@ class ChatServiceImpl implements ChatService {
         {
           message,
           conversationId,
+          attachments,
         },
       );
       return response.data;
@@ -49,15 +56,32 @@ class ChatServiceImpl implements ChatService {
     message: string,
     conversationId: string,
     callbacks: StreamCallbacks,
+    attachments?: Array<{
+      name: string;
+      type: string;
+      size: number;
+      content?: string;
+    }>,
   ): Promise<void> {
     // Note: EventSource doesn't support POST, so we use fetch with ReadableStream instead
-    return this.sendMessageStreamPost(message, conversationId, callbacks);
+    return this.sendMessageStreamPost(
+      message,
+      conversationId,
+      callbacks,
+      attachments,
+    );
   }
 
   private async sendMessageStreamPost(
     message: string,
     conversationId: string,
     callbacks: StreamCallbacks,
+    attachments?: Array<{
+      name: string;
+      type: string;
+      size: number;
+      content?: string;
+    }>,
   ): Promise<void> {
     return new Promise((resolve, reject) => {
       fetch(`${this.baseURL}/chat/stream`, {
@@ -65,7 +89,7 @@ class ChatServiceImpl implements ChatService {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ message, conversationId }),
+        body: JSON.stringify({ message, conversationId, attachments }),
       })
         .then((response) => {
           if (!response.ok) {

@@ -1,9 +1,18 @@
+// File attachment types
+export interface FileAttachment {
+  id: string;
+  file: File;
+  preview?: string;
+  type: "image" | "document" | "other";
+}
+
 // Message types
 export interface Message {
   id?: string;
   sender: "user" | "bot";
   text: string;
   timestamp: string;
+  attachments?: FileAttachment[];
 }
 
 // Conversation types
@@ -74,6 +83,8 @@ export interface ChatInputProps {
   disabled: boolean;
   isTyping: boolean;
   isLoading: boolean;
+  files?: FileAttachment[];
+  onFilesChange?: (files: FileAttachment[]) => void;
 }
 
 export interface ChatHeaderProps {
@@ -118,6 +129,9 @@ export interface UseChatReturn {
     timestamp?: string;
     data?: any;
   }>;
+  // File attachments
+  files: FileAttachment[];
+  setFiles: (files: FileAttachment[]) => void;
   // Conversations loading state
   conversationsLoading: boolean;
 }

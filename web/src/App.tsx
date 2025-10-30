@@ -58,6 +58,8 @@ const Chat: React.FC = () => {
     flowSteps,
     isFlowProcessing,
     processingSteps,
+    files,
+    setFiles,
   } = useChat();
 
   // Scroll to bottom when messages, typing state, or processing steps change
@@ -139,6 +141,8 @@ const Chat: React.FC = () => {
               disabled={isTyping}
               isTyping={isTyping}
               isLoading={isLoading}
+              files={files}
+              onFilesChange={setFiles}
             />
           </Box>
         </Box>
@@ -250,6 +254,8 @@ const HomePage: React.FC = () => {
     flowSteps,
     isFlowProcessing,
     processingSteps,
+    files,
+    setFiles,
   } = useChat(handleConversationComplete);
 
   // Scroll to bottom when messages, typing state, or processing steps change
@@ -331,6 +337,8 @@ const HomePage: React.FC = () => {
               disabled={isTyping}
               isTyping={isTyping}
               isLoading={isLoading}
+              files={files}
+              onFilesChange={setFiles}
             />
           </Box>
         </Box>
