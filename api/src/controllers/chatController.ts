@@ -269,11 +269,13 @@ export class ChatController {
       timestamp: new Date().toISOString(),
     });
 
-    // Get AI response
+    // Get AI response (pass contexts to avoid duplication)
     const groqService = (await import("../services/groqService.js")).default;
     const aiResponseData = await groqService.getAIResponseWithFlowData(
       userMessage,
       conversationHistory,
+      ragContext, // Pass the RAG context we already fetched
+      webSearchContext, // Pass the web search context we already fetched
     );
 
     sendEvent("step", {
@@ -283,12 +285,7 @@ export class ChatController {
       data: { model: aiResponseData.model, tokens: aiResponseData.tokens },
     });
 
-    // Update response data with contexts
-    aiResponseData.ragUsed = !!ragContext;
-    aiResponseData.ragContext = ragContext;
-    aiResponseData.webSearchUsed = !!webSearchContext;
-    aiResponseData.webSearchContext = webSearchContext;
-
+    // Contexts are already set in groqService response
     return aiResponseData;
   }
 

@@ -171,6 +171,8 @@ export class GroqService {
   async getAIResponseWithFlowData(
     userMessage: string,
     conversationHistory: Message[] = [],
+    providedRagContext?: { context: string; sources: any[] } | null,
+    providedWebSearchContext?: { context: string; results: any[] } | null,
   ): Promise<GroqResponse> {
     const startTime = Date.now();
     const flowData: GroqResponse = {
@@ -192,116 +194,137 @@ export class GroqService {
         return flowData;
       }
 
-      // Step 1: RAG Processing
-      const ragStartTime = Date.now();
-      const ragStep: ProcessingStep = {
-        id: "rag-processing",
-        name: "RAG Processing",
-        description: "Checking RAG service availability and context retrieval",
-        status: "active",
-        timestamp: new Date().toISOString(),
-      };
-      flowData.processingSteps?.push(ragStep);
+      // Step 1: RAG Processing (only if not provided)
+      let ragContext: { context: string; sources: any[] } | null =
+        providedRagContext || null;
 
-      let ragContext: { context: string; sources: any[] } | null = null;
+      if (providedRagContext === undefined) {
+        // RAG context not provided, fetch it
+        const ragStartTime = Date.now();
+        const ragStep: ProcessingStep = {
+          id: "rag-processing",
+          name: "RAG Processing",
+          description:
+            "Checking RAG service availability and context retrieval",
+          status: "active",
+          timestamp: new Date().toISOString(),
+        };
+        flowData.processingSteps?.push(ragStep);
 
-      try {
-        // Check if RAG service is available
-        const ragAvailable = await ragService.isAvailable();
+        try {
+          // Check if RAG service is available
+          const ragAvailable = await ragService.isAvailable();
 
-        if (ragAvailable) {
-          console.log("RAG service available, enhancing response...");
+          if (ragAvailable) {
+            console.log("RAG service available, enhancing response...");
 
-          // Get contextual search results for RAG enhancement
-          ragContext = await ragService.getContextualSearch(userMessage);
+            // Get contextual search results for RAG enhancement
+            ragContext = await ragService.getContextualSearch(userMessage);
 
+            flowData.ragUsed = true;
+            flowData.ragContext = ragContext;
+          } else {
+            console.log(
+              "RAG service not available, using standard Groq response",
+            );
+          }
+        } catch (ragError) {
+          console.warn(
+            "RAG integration failed, falling back to standard response:",
+            (ragError as Error).message,
+          );
+          if (ragStep) {
+            ragStep.status = "error";
+            ragStep.data = { error: (ragError as Error).message };
+          }
+        }
+
+        const ragDuration = Date.now() - ragStartTime;
+        if (ragStep) {
+          ragStep.status = ragStep.status === "error" ? "error" : "completed";
+          ragStep.duration = ragDuration;
+          ragStep.data = {
+            ...ragStep.data,
+            ragAvailable: !!ragContext,
+            ragUsed: !!ragContext,
+            processingTime: ragDuration,
+          };
+        }
+      } else {
+        // Use provided context
+        if (ragContext) {
           flowData.ragUsed = true;
           flowData.ragContext = ragContext;
-        } else {
-          console.log(
-            "RAG service not available, using standard Groq response",
-          );
-        }
-      } catch (ragError) {
-        console.warn(
-          "RAG integration failed, falling back to standard response:",
-          (ragError as Error).message,
-        );
-        if (ragStep) {
-          ragStep.status = "error";
-          ragStep.data = { error: (ragError as Error).message };
         }
       }
 
-      const ragDuration = Date.now() - ragStartTime;
-      if (ragStep) {
-        ragStep.status = ragStep.status === "error" ? "error" : "completed";
-        ragStep.duration = ragDuration;
-        ragStep.data = {
-          ...ragStep.data,
-          ragAvailable: !!ragContext,
-          ragUsed: flowData.ragUsed,
-          processingTime: ragDuration,
+      // Step 2: Web Search Processing (only if not provided)
+      let webSearchContext: { context: string; results: any[] } | null =
+        providedWebSearchContext || null;
+
+      if (providedWebSearchContext === undefined) {
+        // Web search context not provided, fetch it
+        const webSearchStartTime = Date.now();
+        const webSearchStep: ProcessingStep = {
+          id: "web-search-processing",
+          name: "Web Search Processing",
+          description:
+            "Checking if web search is needed and retrieving current information",
+          status: "active",
+          timestamp: new Date().toISOString(),
         };
-      }
+        flowData.processingSteps?.push(webSearchStep);
 
-      // Step 2: Web Search Processing
-      const webSearchStartTime = Date.now();
-      const webSearchStep: ProcessingStep = {
-        id: "web-search-processing",
-        name: "Web Search Processing",
-        description:
-          "Checking if web search is needed and retrieving current information",
-        status: "active",
-        timestamp: new Date().toISOString(),
-      };
-      flowData.processingSteps?.push(webSearchStep);
+        try {
+          // Check if web search should be performed for this query
+          const shouldSearch = webSearchService.shouldSearch(userMessage);
 
-      let webSearchContext: { context: string; results: any[] } | null = null;
+          if (shouldSearch) {
+            console.log(
+              "Web search triggered, enhancing response with current information...",
+            );
 
-      try {
-        // Check if web search should be performed for this query
-        const shouldSearch = webSearchService.shouldSearch(userMessage);
+            // Get contextual web search results
+            webSearchContext =
+              await webSearchService.getContextualWebSearch(userMessage);
 
-        if (shouldSearch) {
-          console.log(
-            "Web search triggered, enhancing response with current information...",
-          );
-
-          // Get contextual web search results
-          webSearchContext =
-            await webSearchService.getContextualWebSearch(userMessage);
-
-          if (webSearchContext) {
-            flowData.webSearchUsed = true;
-            flowData.webSearchContext = webSearchContext;
+            if (webSearchContext) {
+              flowData.webSearchUsed = true;
+              flowData.webSearchContext = webSearchContext;
+            }
+          } else {
+            console.log("Web search not needed for this query");
           }
-        } else {
-          console.log("Web search not needed for this query");
+        } catch (webSearchError) {
+          console.warn(
+            "Web search failed, continuing without web context:",
+            (webSearchError as Error).message,
+          );
+          if (webSearchStep) {
+            webSearchStep.status = "error";
+            webSearchStep.data = { error: (webSearchError as Error).message };
+          }
         }
-      } catch (webSearchError) {
-        console.warn(
-          "Web search failed, continuing without web context:",
-          (webSearchError as Error).message,
-        );
-        if (webSearchStep) {
-          webSearchStep.status = "error";
-          webSearchStep.data = { error: (webSearchError as Error).message };
-        }
-      }
 
-      const webSearchDuration = Date.now() - webSearchStartTime;
-      if (webSearchStep) {
-        webSearchStep.status =
-          webSearchStep.status === "error" ? "error" : "completed";
-        webSearchStep.duration = webSearchDuration;
-        webSearchStep.data = {
-          ...webSearchStep.data,
-          searchPerformed: !!webSearchContext,
-          webSearchUsed: flowData.webSearchUsed,
-          processingTime: webSearchDuration,
-          resultsCount: webSearchContext?.results?.length || 0,
-        };
+        const webSearchDuration = Date.now() - webSearchStartTime;
+        if (webSearchStep) {
+          webSearchStep.status =
+            webSearchStep.status === "error" ? "error" : "completed";
+          webSearchStep.duration = webSearchDuration;
+          webSearchStep.data = {
+            ...webSearchStep.data,
+            searchPerformed: !!webSearchContext,
+            webSearchUsed: !!webSearchContext,
+            processingTime: webSearchDuration,
+            resultsCount: webSearchContext?.results?.length || 0,
+          };
+        }
+      } else {
+        // Use provided context
+        if (webSearchContext) {
+          flowData.webSearchUsed = true;
+          flowData.webSearchContext = webSearchContext;
+        }
       }
 
       // Step 3: Groq API Processing
